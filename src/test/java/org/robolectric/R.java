@@ -85,7 +85,7 @@ public final class R {
         public static final int lam_container = 0x10028;
         public static final int lam_inner_contents = 0x10029;
         public static final int my_fragment = 0x1002a;
-        public static final int my_landscape_fragment = 0x1002b;
+        public static final int my_landscape_text = 0x1002b;
 
         public static final int itemType = 0x1002c;
         public static final int scrollBars = 0x1002d;
@@ -95,6 +95,8 @@ public final class R {
 
         public static final int marsupial = 0x10031;
         public static final int ungulate = 0x10032;
+
+        public static final int custom_view = 0x10033;
     }
 
     public static final class string {

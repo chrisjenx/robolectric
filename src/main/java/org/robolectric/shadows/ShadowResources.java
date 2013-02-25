@@ -17,7 +17,7 @@ import org.robolectric.internal.RealObject;
 import org.robolectric.res.Attribute;
 import org.robolectric.res.DrawableNode;
 import org.robolectric.res.ResName;
-import org.robolectric.res.ResourceExtractor;
+import org.robolectric.res.ResourceIndex;
 import org.robolectric.res.ResourceLoader;
 import org.robolectric.res.builder.DrawableBuilder;
 import org.robolectric.res.builder.XmlFileBuilder;
@@ -46,10 +46,14 @@ public class ShadowResources {
     private Display display;
     @RealObject Resources realResources;
     private ResourceLoader resourceLoader;
+    private ResourceIndex resourceIndex;
     private AssetManager assetManager;
 
     public static void setSystemResources(ResourceLoader systemResourceLoader) {
-        system = ShadowResources.bind(new Resources(null, null, null), systemResourceLoader);
+        AssetManager assetManager = Robolectric.newInstanceOf(AssetManager.class);
+        DisplayMetrics metrics = new DisplayMetrics();
+        Configuration config = new Configuration();
+        system = ShadowResources.bind(new Resources(assetManager, metrics, config), systemResourceLoader);
     }
 
     static Resources bind(Resources resources, ResourceLoader resourceLoader) {
@@ -83,9 +87,9 @@ public class ShadowResources {
 
     @Implementation
     public int getIdentifier(String name, String defType, String defPackage) {
-        ResourceExtractor resourceExtractor = resourceLoader.getResourceExtractor();
+        ResourceIndex resourceIndex = resourceLoader.getResourceIndex();
 
-        Integer index = resourceExtractor.getResourceId(defType + "/" + name, defPackage);
+        Integer index = ResName.getResourceId(resourceIndex, defType + "/" + name, defPackage);
         if (index == null) {
             return 0;
         }
@@ -98,9 +102,9 @@ public class ShadowResources {
     }
 
     private ResName getResName(int id) {
-        ResName resName = resourceLoader.getResourceExtractor().getResName(id);
+        ResName resName = resourceLoader.getResourceIndex().getResName(id);
         if (resName == null) {
-          throw new Resources.NotFoundException("couldn't find a name for resource id " + id);
+            throw new Resources.NotFoundException("couldn't find a name for resource id " + id);
         }
         return resName;
     }
@@ -171,7 +175,7 @@ public class ShadowResources {
     public CharSequence getText(int id) throws Resources.NotFoundException {
         return getString(id);
     }
-    
+
     public void setDensity(float density) {
         this.density = density;
     }
@@ -200,7 +204,7 @@ public class ShadowResources {
         ResName resName = getResName(drawableResourceId);
         String qualifiers = getQualifiers();
         DrawableNode drawableNode = resourceLoader.getDrawableNode(resName, qualifiers);
-        final DrawableBuilder drawableBuilder = new DrawableBuilder(getResourceLoader().getResourceExtractor());
+        final DrawableBuilder drawableBuilder = new DrawableBuilder(getResourceLoader().getResourceIndex());
         return drawableBuilder.getDrawable(resName, realResources, drawableNode);
     }
 
@@ -211,23 +215,27 @@ public class ShadowResources {
 
     @Implementation
     public int getInteger(int id) throws Resources.NotFoundException {
-    	return resourceLoader.getIntegerValue(getResName(id), getQualifiers());
+        return resourceLoader.getIntegerValue(getResName(id), getQualifiers());
     }
 
     @Implementation
     public int[] getIntArray(int id) throws Resources.NotFoundException {
         int[] arrayValue = resourceLoader.getIntegerArrayValue(getResName(id), getQualifiers());
         if (arrayValue == null) {
-            throw new Resources.NotFoundException();
+            throw new Resources.NotFoundException(notFound(id));
         }
         return arrayValue;
     }
 
     @Implementation
     public boolean getBoolean(int id) throws Resources.NotFoundException {
-    	return resourceLoader.getBooleanValue(getResName(id), getQualifiers());
+        try {
+            return resourceLoader.getBooleanValue(getResName(id), getQualifiers());
+        } catch (NullPointerException e) {
+            throw new Resources.NotFoundException(notFound(id));
+        }
     }
-    
+
     @Implementation
     public int getDimensionPixelSize(int id) throws Resources.NotFoundException {
         return (int) getDimension(id);
@@ -242,7 +250,7 @@ public class ShadowResources {
     public AssetManager getAssets() {
         return assetManager;
     }
-    
+
     @Implementation
     public XmlResourceParser getXml(int id) throws Resources.NotFoundException {
         Document document = resourceLoader.getXml(getResName(id), getQualifiers());
@@ -261,6 +269,10 @@ public class ShadowResources {
 
     public ResourceLoader getResourceLoader() {
         return resourceLoader;
+    }
+
+    private String notFound(int id) {
+        return "couldn't find resource " + getResName(id).getFullyQualifiedName();
     }
 
     @Implements(Resources.Theme.class)

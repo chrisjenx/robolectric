@@ -45,7 +45,7 @@ public class MenuLoader extends XmlLoader {
             int length = attributesNodes.getLength();
             for (int i = 0; i < length; i++) {
                 Node attr = attributesNodes.item(i);
-                String resourceName = ResourceExtractor.qualifyResourceName(attr.getNodeName(), xmlContext.packageName);
+                String resourceName = ResName.qualifyResourceName(attr.getNodeName(), xmlContext.packageName);
                 attributes.add(new Attribute(Attribute.addType(resourceName, "attr"), attr.getNodeValue(), xmlContext.packageName));
             }
         }
@@ -72,17 +72,16 @@ public class MenuLoader extends XmlLoader {
     }
 
     private static boolean childToIgnore(Node nodei) {
-        return isEmpty(nodei.getNodeName())
-                || nodei.getNodeName().startsWith("#");
+        return isEmpty(nodei.getNodeName()) || nodei.getNodeName().startsWith("#");
+    }
+
+    public static boolean isEmpty(CharSequence str) {
+        return str == null || str.length() == 0;
     }
 
     private static boolean validChildren(Node nodei) {
         return nodei.getNodeName().equals("item")
                 || nodei.getNodeName().equals("menu")
                 || nodei.getNodeName().equals("group");
-    }
-
-    public static boolean isEmpty(CharSequence str) {
-        return str == null || str.length() == 0;
     }
 }

@@ -32,7 +32,7 @@ public class AndroidResourcePathFinder {
             return resourcePath;
         }
 
-        throw new RuntimeException("Unable to find path to Android SDK, look to the ");
+        throw new RuntimeException("Unable to find path to Android SDK, (you probably need a local.properties file, see: http://pivotal.github.com/robolectric/resources.html");
     }
 
     private String getAndroidResourcePathFromLocalProperties() {
