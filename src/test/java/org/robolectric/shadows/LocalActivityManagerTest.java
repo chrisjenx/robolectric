@@ -2,10 +2,10 @@ package org.robolectric.shadows;
 
 import android.app.Activity;
 import android.os.Bundle;
-import org.robolectric.R;
-import org.robolectric.TestRunners;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.R;
+import org.robolectric.TestRunners;
 
 import static org.junit.Assert.assertNotNull;
 

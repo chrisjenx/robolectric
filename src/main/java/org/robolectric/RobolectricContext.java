@@ -64,12 +64,10 @@ public class RobolectricContext {
     }
 
     public RobolectricContext() {
-        ClassCache classCache = createClassCache();
         Setup setup = createSetup();
         classHandler = createClassHandler(setup);
         appManifest = createAppManifest();
-        AndroidTranslator androidTranslator = createAndroidTranslator(setup, classCache);
-        robolectricClassLoader = createRobolectricClassLoader(setup, classCache, androidTranslator);
+        robolectricClassLoader = createRobolectricClassLoader(setup);
     }
 
     private ClassHandler createClassHandler(Setup setup) {
@@ -148,14 +146,18 @@ public class RobolectricContext {
         }
     }
 
-    protected ClassLoader createRobolectricClassLoader(Setup setup, ClassCache classCache, AndroidTranslator androidTranslator) {
+    protected ClassLoader createRobolectricClassLoader(Setup setup) {
         URL[] urls = artifactUrls(realAndroidDependency("android-base"),
                 realAndroidDependency("android-kxml2"),
-                realAndroidDependency("android-luni"));
+                realAndroidDependency("android-luni"),
+                createDependency("org.json", "json", "20080701", "jar", null)
+        );
         ClassLoader robolectricClassLoader;
         if (useAsm()) {
             robolectricClassLoader = new AsmInstrumentingClassLoader(setup, urls);
         } else {
+            ClassCache classCache = createClassCache();
+            AndroidTranslator androidTranslator = createAndroidTranslator(setup, classCache);
             ClassLoader realSdkClassLoader = JavassistInstrumentingClassLoader.makeClassloader(this.getClass().getClassLoader(), urls);
             robolectricClassLoader = new JavassistInstrumentingClassLoader(realSdkClassLoader, classCache, androidTranslator, setup);
         }
@@ -222,12 +224,16 @@ public class RobolectricContext {
     }
 
     private Dependency realAndroidDependency(String artifactId) {
+        return createDependency("org.robolectric", artifactId, "4.1.2_r1_rc", "jar", "real");
+    }
+
+    private Dependency createDependency(String groupId, String artifactId, String version, String type, String classifier) {
         Dependency dependency = new Dependency();
-        dependency.setGroupId("org.robolectric");
+        dependency.setGroupId(groupId);
         dependency.setArtifactId(artifactId);
-        dependency.setVersion("4.1.2_r1_rc");
-        dependency.setType("jar");
-        dependency.setClassifier("real");
+        dependency.setVersion(version);
+        dependency.setType(type);
+        dependency.setClassifier(classifier);
         return dependency;
     }
 
