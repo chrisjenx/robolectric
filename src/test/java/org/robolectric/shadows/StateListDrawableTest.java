@@ -4,14 +4,13 @@ import android.R;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.StateListDrawable;
 import android.util.StateSet;
-import org.robolectric.TestRunners;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.TestRunners;
 
-import static org.robolectric.Robolectric.shadowOf;
-import static org.hamcrest.CoreMatchers.is;
+import static org.fest.assertions.api.Assertions.assertThat;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
+import static org.robolectric.Robolectric.shadowOf;
 
 @RunWith(TestRunners.WithDefaults.class)
 public class StateListDrawableTest {
@@ -27,7 +26,7 @@ public class StateListDrawableTest {
         ShadowStateListDrawable shadow = shadowOf(stateListDrawable);
         Drawable drawableForState = shadow.getDrawableForState(states);
         assertNotNull(drawableForState);
-        assertThat(((ShadowBitmapDrawable) shadowOf(drawableForState)).getPath(), is("/foo"));
+        assertThat(((ShadowBitmapDrawable) shadowOf(drawableForState)).getPath()).isEqualTo("/foo");
     }
 
     @Test
@@ -40,6 +39,6 @@ public class StateListDrawableTest {
         ShadowStateListDrawable shadow = shadowOf(stateListDrawable);
         Drawable drawableForState = shadow.getDrawableForState(StateSet.WILD_CARD);
         assertNotNull(drawableForState);
-        assertThat(((ShadowBitmapDrawable) shadowOf(drawableForState)).getPath(), is("/foo"));
+        assertThat(((ShadowBitmapDrawable) shadowOf(drawableForState)).getPath()).isEqualTo("/foo");
     }
 }

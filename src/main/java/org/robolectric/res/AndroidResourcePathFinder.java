@@ -3,16 +3,28 @@ package org.robolectric.res;
 import android.R;
 import org.robolectric.util.PropertiesHelper;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.Properties;
 
 public class AndroidResourcePathFinder {
+    public static final String ANDROID_SDK_HELP_TEXT = "See http://pivotal.github.com/robolectric/resources.html#unable_to_find_android_sdk for more info.";
     private final int sdkVersion;
     private final ResourcePath resourcePath;
 
     public static ResourcePath getSystemResourcePath(int sdkVersion, ResourcePath resourcePath) {
         String pathToAndroidResources = new AndroidResourcePathFinder(sdkVersion, resourcePath).getPathToAndroidResources();
-        return new ResourcePath(R.class, new File(pathToAndroidResources), null);
+        if (pathToAndroidResources == null)
+            throw new RuntimeException("Unable to find Android SDK. " + ANDROID_SDK_HELP_TEXT);
+
+        File path = new File(pathToAndroidResources);
+        if (!path.isDirectory())
+            throw new RuntimeException("Unable to find Android SDK: " + path.getAbsolutePath() + " is not a directory. " + ANDROID_SDK_HELP_TEXT);
+
+        return new ResourcePath(R.class, path, null);
     }
 
     public AndroidResourcePathFinder(int sdkVersion, ResourcePath resourcePath) {
@@ -21,18 +33,20 @@ public class AndroidResourcePathFinder {
     }
 
     String getPathToAndroidResources() {
-        String resourcePath;
-        if ((resourcePath = getAndroidResourcePathFromLocalProperties()) != null) {
-            return resourcePath;
-        } else if ((resourcePath = getAndroidResourcePathFromSystemEnvironment()) != null) {
-            return resourcePath;
-        } else if ((resourcePath = getAndroidResourcePathFromSystemProperty()) != null) {
-            return resourcePath;
-        } else if ((resourcePath = getAndroidResourcePathByExecingWhichAndroid()) != null) {
-            return resourcePath;
+        String pathToAndroidResources;
+        if ((pathToAndroidResources = getAndroidResourcePathFromLocalProperties()) != null) {
+            return pathToAndroidResources;
         }
-
-        throw new RuntimeException("Unable to find path to Android SDK, (you probably need a local.properties file, see: http://pivotal.github.com/robolectric/resources.html");
+        if ((pathToAndroidResources = getAndroidResourcePathFromSystemEnvironment()) != null) {
+            return pathToAndroidResources;
+        }
+        if ((pathToAndroidResources = getAndroidResourcePathFromSystemProperty()) != null) {
+            return pathToAndroidResources;
+        }
+        if ((pathToAndroidResources = getAndroidResourcePathByExecingWhichAndroid()) != null) {
+            return pathToAndroidResources;
+        }
+        return null;
     }
 
     private String getAndroidResourcePathFromLocalProperties() {

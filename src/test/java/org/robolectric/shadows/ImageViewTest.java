@@ -8,22 +8,16 @@ import android.graphics.drawable.AnimationDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.widget.ImageView;
-import org.robolectric.R;
-import org.robolectric.Robolectric;
-import org.robolectric.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.R;
+import org.robolectric.Robolectric;
+import org.robolectric.TestRunners;
 
-import static org.robolectric.Robolectric.application;
-import static org.robolectric.Robolectric.shadowOf;
-import static org.robolectric.Robolectric.visualize;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.fest.assertions.api.Assertions.assertThat;
+import static org.junit.Assert.*;
+import static org.robolectric.Robolectric.*;
 
 @RunWith(TestRunners.WithDefaults.class)
 public class ImageViewTest {
@@ -104,12 +98,12 @@ public class ImageViewTest {
         assertTrue("Drawable", imageView.getDrawable() instanceof Drawable);
         assertTrue("LayerDrawable",
                 imageView.getDrawable() instanceof LayerDrawable);
-        assertThat(shadowOf(imageView.getDrawable()).getLoadedFromResourceId(), is(R.drawable.rainbow));
+        assertThat(shadowOf(imageView.getDrawable()).getLoadedFromResourceId()).isEqualTo(R.drawable.rainbow);
     }
 
     @Test
     public void testSetImageLevel() throws Exception {
         imageView.setImageLevel(2);
-        assertThat(shadowOf(imageView).getImageLevel(), equalTo(2));
+        assertThat(shadowOf(imageView).getImageLevel()).isEqualTo(2);
     }
 }

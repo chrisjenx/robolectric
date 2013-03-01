@@ -1,15 +1,14 @@
 package org.robolectric.shadows;
 
 import android.view.MotionEvent;
-import org.robolectric.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.TestRunners;
 
-import static org.robolectric.Robolectric.shadowOf;
-import static org.hamcrest.CoreMatchers.equalTo;
+import static org.fest.assertions.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.robolectric.Robolectric.shadowOf;
 
 @RunWith(TestRunners.WithDefaults.class)
 public class MotionEventTest {
@@ -24,15 +23,15 @@ public class MotionEventTest {
 
     @Test
 	public void addingSecondPointerSetsCount() {
-        assertThat(event.getX(0), equalTo(5.0f));
-		assertThat(event.getY(0), equalTo(10.0f));
-		assertThat(event.getPointerCount(), equalTo(1));
+        assertThat(event.getX(0)).isEqualTo(5.0f);
+        assertThat(event.getY(0)).isEqualTo(10.0f);
+        assertThat(event.getPointerCount()).isEqualTo(1);
 		
 		shadowOf(event).setPointer2( 20.0f, 30.0f );
-		
-		assertThat(event.getX(1), equalTo(20.0f));
-		assertThat(event.getY(1), equalTo(30.0f));
-		assertThat(event.getPointerCount(), equalTo(2));
+
+        assertThat(event.getX(1)).isEqualTo(20.0f);
+        assertThat(event.getY(1)).isEqualTo(30.0f);
+        assertThat(event.getPointerCount()).isEqualTo(2);
 	}
     
     @Test

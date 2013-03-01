@@ -1,19 +1,15 @@
 package org.robolectric.shadows;
 
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.CoreMatchers.sameInstance;
-import static org.junit.Assert.assertThat;
-
-import org.robolectric.TestRunners;
+import android.app.Activity;
+import android.widget.SeekBar;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import android.app.Activity;
-import android.widget.SeekBar;
-
 import org.robolectric.Robolectric;
+import org.robolectric.TestRunners;
 import org.robolectric.util.Transcript;
+
+import static org.fest.assertions.api.Assertions.assertThat;
 
 @RunWith(TestRunners.WithDefaults.class)
 public class SeekBarTest {
@@ -34,9 +30,9 @@ public class SeekBarTest {
 	
     @Test
     public void testOnSeekBarChangedListener() {
-        assertThat(shadow.getOnSeekBarChangeListener(), sameInstance(listener));
+        assertThat(shadow.getOnSeekBarChangeListener()).isSameAs(listener);
         seekBar.setOnSeekBarChangeListener(null);
-        assertThat(shadow.getOnSeekBarChangeListener(), nullValue());
+        assertThat(shadow.getOnSeekBarChangeListener()).isNull();
     }
 
     @Test

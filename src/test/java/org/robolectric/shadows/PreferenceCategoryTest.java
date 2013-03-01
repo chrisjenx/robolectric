@@ -1,17 +1,14 @@
 package org.robolectric.shadows;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.assertThat;
-
-import org.robolectric.TestRunners;
+import android.app.Activity;
+import android.preference.PreferenceCategory;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import android.app.Activity;
-import android.preference.PreferenceCategory;
-
 import org.robolectric.Robolectric;
+import org.robolectric.TestRunners;
+
+import static org.fest.assertions.api.Assertions.assertThat;
 
 @RunWith(TestRunners.WithDefaults.class)
 public class PreferenceCategoryTest {
@@ -27,6 +24,6 @@ public class PreferenceCategoryTest {
     
 	@Test
 	public void shouldInheritFromPreferenceGroup() {
-		assertThat(shadow, instanceOf(ShadowPreferenceGroup.class));
+        assertThat(shadow).isInstanceOf(ShadowPreferenceGroup.class);
 	}	
 }

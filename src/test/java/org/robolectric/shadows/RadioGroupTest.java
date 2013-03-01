@@ -1,16 +1,15 @@
 package org.robolectric.shadows;
 
 import android.widget.RadioGroup;
-import org.robolectric.TestRunners;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.TestRunners;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import static org.hamcrest.CoreMatchers.equalTo;
+import static org.fest.assertions.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 @RunWith(TestRunners.WithDefaults.class)
 public class RadioGroupTest {
@@ -19,9 +18,9 @@ public class RadioGroupTest {
     @Test
     public void checkedRadioButtonId() throws Exception {
         RadioGroup radioGroup = new RadioGroup(null);
-        assertThat(radioGroup.getCheckedRadioButtonId(), equalTo(-1));
+        assertThat(radioGroup.getCheckedRadioButtonId()).isEqualTo(-1);
         radioGroup.check(99);
-        assertThat(radioGroup.getCheckedRadioButtonId(), equalTo(99));
+        assertThat(radioGroup.getCheckedRadioButtonId()).isEqualTo(99);
     }
 
     @Test

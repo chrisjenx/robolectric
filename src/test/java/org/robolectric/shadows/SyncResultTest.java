@@ -1,15 +1,13 @@
 package org.robolectric.shadows;
 
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertTrue;
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.assertThat;
-
-import org.robolectric.TestRunners;
+import android.content.SyncResult;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.TestRunners;
 
-import android.content.SyncResult;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertTrue;
+import static org.fest.assertions.api.Assertions.assertThat;
 
 
 @RunWith(TestRunners.WithDefaults.class)
@@ -18,7 +16,7 @@ public class SyncResultTest {
     @Test
     public void testConstructor() throws Exception {
         SyncResult result = new SyncResult();
-        assertThat(result.stats, not(nullValue()));
+        assertThat(result.stats).isNotNull();
     }
 
     @Test
@@ -54,6 +52,6 @@ public class SyncResultTest {
         result.stats.numInserts++;
         result.clear();
         assertFalse(result.moreRecordsToGet);
-        assertThat(result.stats.numInserts, is(0L));
+        assertThat(result.stats.numInserts).isEqualTo(0L);
     }
 }

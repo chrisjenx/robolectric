@@ -24,9 +24,11 @@ import java.util.List;
 import java.util.Set;
 
 import static java.util.Arrays.asList;
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
-import static org.robolectric.util.TestUtil.*;
+import static org.fest.assertions.api.Assertions.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.robolectric.util.TestUtil.TEST_PACKAGE;
+import static org.robolectric.util.TestUtil.testResources;
 
 /**
  * Test class for {@link XmlFileLoader} and its inner
@@ -110,14 +112,14 @@ public class XmlFileLoaderTest {
 
     @Test
     public void testGetXmlInt() throws XmlPullParserException, IOException {
-        assertThat(parser, notNullValue());
+        assertThat(parser).isNotNull();
         int evt = parser.next();
-        assertThat(evt, equalTo(XmlResourceParser.START_DOCUMENT));
+        assertThat(evt).isEqualTo(XmlResourceParser.START_DOCUMENT);
     }
 
     @Test
     public void testGetXmlString() {
-        assertThat(parser, notNullValue());
+        assertThat(parser).isNotNull();
     }
 
     @Test
@@ -151,14 +153,14 @@ public class XmlFileLoaderTest {
     @Test
     public void testGetFeature() {
         for (String feature : XmlFileBuilder.AVAILABLE_FEATURES) {
-            assertThat(parser.getFeature(feature), equalTo(true));
+            assertThat(parser.getFeature(feature)).isTrue();
         }
 
         for (String feature : XmlFileBuilder.UNAVAILABLE_FEATURES) {
-            assertThat(parser.getFeature(feature), equalTo(false));
+            assertThat(parser.getFeature(feature)).isFalse();
         }
 
-        assertThat(parser.getFeature(null), equalTo(false));
+        assertThat(parser.getFeature(null)).isFalse();
     }
 
     @Test
@@ -174,7 +176,7 @@ public class XmlFileLoaderTest {
     @Test
     public void testGetProperty() {
         // Properties are not supported
-        assertThat(parser.getProperty("foo"), nullValue());
+        assertThat(parser.getProperty("foo")).isNull();
     }
 
     @Test
@@ -223,7 +225,7 @@ public class XmlFileLoaderTest {
 
     @Test
     public void testGetInputEncoding() {
-        assertThat(parser.getInputEncoding(), nullValue());
+        assertThat(parser.getInputEncoding()).isNull();
     }
 
     @Test
@@ -258,7 +260,7 @@ public class XmlFileLoaderTest {
 
     @Test
     public void testGetColumnNumber() {
-        assertThat(parser.getColumnNumber(), equalTo(-1));
+        assertThat(parser.getColumnNumber()).isEqualTo(-1);
     }
 
     @Test
@@ -276,40 +278,38 @@ public class XmlFileLoaderTest {
             }
 
         }
-        assertThat(actualDepths, equalTo(expectedDepths));
+        assertThat(actualDepths).isEqualTo(expectedDepths);
     }
 
     @Test
     public void testGetText() throws XmlPullParserException, IOException {
         forgeAndOpenDocument("<foo/>");
-        assertThat(parser.getText(), equalTo(""));
+        assertThat(parser.getText()).isEqualTo("");
 
         forgeAndOpenDocument("<foo>bar</foo>");
-        assertThat(parser.getText(), equalTo("bar"));
+        assertThat(parser.getText()).isEqualTo("bar");
     }
 
     @Test
     @Ignore("Not implemented yet")
     public void testGetLineNumber() throws XmlPullParserException, IOException {
-        assertThat(parser.getLineNumber(), equalTo(-1));
+        assertThat(parser.getLineNumber()).isEqualTo(-1);
         parseUntilNext(XmlResourceParser.START_TAG);
-        assertThat(
-                "The root element should be at line 1.",
-                parser.getLineNumber(), equalTo(1));
+        assertThat(parser.getLineNumber()).isEqualTo(1).as("The root element should be at line 1.");
     }
 
     @Test
     public void testGetEventType() throws XmlPullParserException, IOException {
         int evt;
         while ((evt = parser.next()) != XmlResourceParser.END_DOCUMENT) {
-            assertThat(parser.getEventType(), equalTo(evt));
+            assertThat(parser.getEventType()).isEqualTo(evt);
         }
     }
 
     @Test
     public void testIsWhitespace() throws XmlPullParserException {
-        assertThat(parser.isWhitespace("bar"), equalTo(false));
-        assertThat(parser.isWhitespace(" "), equalTo(true));
+        assertThat(parser.isWhitespace("bar")).isFalse();
+        assertThat(parser.isWhitespace(" ")).isTrue();
     }
 
     @Test
@@ -325,53 +325,47 @@ public class XmlFileLoaderTest {
     @Test
     public void testGetNamespace() throws XmlPullParserException, IOException {
         forgeAndOpenDocument("<foo xmlns=\"http://www.w3.org/1999/xhtml\">bar</foo>");
-        assertThat(parser.getNamespace(),
-                equalTo("http://www.w3.org/1999/xhtml"));
+        assertThat(parser.getNamespace()).isEqualTo("http://www.w3.org/1999/xhtml");
     }
 
     @Test
     public void testGetName_atStart()
             throws XmlPullParserException, IOException {
-        assertThat(parser.getName(), equalTo(""));
+        assertThat(parser.getName()).isEqualTo("");
         parseUntilNext(XmlResourceParser.START_DOCUMENT);
-        assertThat(parser.getName(), equalTo(""));
+        assertThat(parser.getName()).isEqualTo("");
     }
 
     @Test
     public void testGetName() throws XmlPullParserException, IOException {
         forgeAndOpenDocument("<foo/>");
-        assertThat(parser.getName(), equalTo("foo"));
+        assertThat(parser.getName()).isEqualTo("foo");
     }
 
 
     @Test
     public void testGetAttribute() throws XmlPullParserException, IOException {
         forgeAndOpenDocument("<foo xmlns:bar=\"bar\"/>");
-        assertThat(
-                parser.getAttribute(
-                        "http://www.w3.org/2000/xmlns/",
-                        "xmlns:bar").getNodeValue(),
-                equalTo("bar"));
+        assertThat(parser.getAttribute(
+                "http://www.w3.org/2000/xmlns/",
+                "xmlns:bar").getNodeValue()).isEqualTo("bar");
     }
 
     @Test
     public void testGetAttributeNamespace()
             throws XmlPullParserException, IOException {
         forgeAndOpenDocument("<foo xmlns:bar=\"bar\"/>");
-        assertThat(parser.getAttributeNamespace(0),
-                equalTo("http://www.w3.org/2000/xmlns/"));
+        assertThat(parser.getAttributeNamespace(0)).isEqualTo("http://www.w3.org/2000/xmlns/");
     }
 
     @Test
     public void testGetAttributeName()
             throws XmlPullParserException, IOException {
-        assertThat(parser.getAttributeName(0),
-                nullValue());
+        assertThat(parser.getAttributeName(0)).isNull();
 
         forgeAndOpenDocument("<foo bar=\"bar\"/>");
-        assertThat(parser.getAttributeName(0), equalTo("bar"));
-        assertThat(parser.getAttributeName(attributeIndexOutOfIndex()),
-                nullValue());
+        assertThat(parser.getAttributeName(0)).isEqualTo("bar");
+        assertThat(parser.getAttributeName(attributeIndexOutOfIndex())).isNull();
     }
 
     @Test
@@ -389,46 +383,30 @@ public class XmlFileLoaderTest {
     @Test
     public void testIsEmptyElementTag()
             throws XmlPullParserException, IOException {
-        assertThat(
-                "Before START_DOCUMENT should return false.",
-                parser.isEmptyElementTag(),
-                equalTo(false));
+        assertThat(parser.isEmptyElementTag()).isEqualTo(false).as("Before START_DOCUMENT should return false.");
 
         forgeAndOpenDocument("<foo><bar/></foo>");
-        assertThat(
-                "Not empty tag should return false.",
-                parser.isEmptyElementTag(),
-                equalTo(false));
+        assertThat(parser.isEmptyElementTag()).isEqualTo(false).as("Not empty tag should return false.");
 
         forgeAndOpenDocument("<foo/>");
-        assertThat(
-                "In the Android implementation this method always return false.",
-                parser.isEmptyElementTag(),
-                equalTo(false));
+        assertThat(parser.isEmptyElementTag()).isEqualTo(false).as("In the Android implementation this method always return false.");
     }
 
     @Test
     public void testGetAttributeCount()
             throws XmlPullParserException, IOException {
-        assertThat(
-                "When no node is being explored the number " +
-                        "of attributes should be -1.",
-                parser.getAttributeCount(),
-                equalTo(-1));
+        assertThat(parser.getAttributeCount()).isEqualTo(-1)
+                .as("When no node is being explored the number of attributes should be -1.");
 
         forgeAndOpenDocument("<foo bar=\"bar\"/>");
-        assertThat(
-                parser.getAttributeCount(),
-                equalTo(1));
+        assertThat(parser.getAttributeCount()).isEqualTo(1);
     }
 
     @Test
     public void testGetAttributeValue_Int()
             throws XmlPullParserException {
         forgeAndOpenDocument("<foo bar=\"bar\"/>");
-        assertThat(
-                parser.getAttributeValue(0),
-                equalTo("bar"));
+        assertThat(parser.getAttributeValue(0)).isEqualTo("bar");
 
         try {
             parser.getAttributeValue(attributeIndexOutOfIndex());
@@ -440,26 +418,20 @@ public class XmlFileLoaderTest {
     @Test
     public void testGetAttributeType() {
         // Hardcoded to always return CDATA
-        assertThat(
-                parser.getAttributeType(attributeIndexOutOfIndex()),
-                equalTo("CDATA"));
+        assertThat(parser.getAttributeType(attributeIndexOutOfIndex())).isEqualTo("CDATA");
     }
 
     @Test
     public void testIsAttributeDefault() {
-        assertThat(
-                parser.isAttributeDefault(attributeIndexOutOfIndex()),
-                equalTo(false));
+        assertThat(parser.isAttributeDefault(attributeIndexOutOfIndex())).isFalse();
     }
 
     @Test
     public void testGetAttributeValueStringString()
             throws XmlPullParserException, IOException {
         forgeAndOpenDocument("<foo xmlns:bar=\"bar\"/>");
-        assertThat(
-                parser.getAttributeValue(
-                        "http://www.w3.org/2000/xmlns/", "xmlns:bar"),
-                equalTo("bar"));
+        assertThat(parser.getAttributeValue(
+                "http://www.w3.org/2000/xmlns/", "xmlns:bar")).isEqualTo("bar");
     }
 
     @Test
@@ -510,7 +482,7 @@ public class XmlFileLoaderTest {
                     break;
             }
         } while (evt != XmlResourceParser.END_DOCUMENT);
-        assertThat(actualEvents, equalTo(expectedEvents));
+        assertThat(actualEvents).isEqualTo(expectedEvents);
     }
 
     @Test
@@ -548,12 +520,10 @@ public class XmlFileLoaderTest {
     public void testNextText_noText() throws XmlPullParserException, IOException {
         forgeAndOpenDocument("<foo><bar/></foo>");
         try {
-            assertThat(parser.nextText(), equalTo(parser.getText()));
+            assertThat(parser.nextText()).isEqualTo(parser.getText());
             fail("nextText on a document with no text should have failed");
         } catch (XmlPullParserException ex) {
-            assertThat(parser.getEventType(),
-                    anyOf(equalTo(XmlResourceParser.START_TAG),
-                            equalTo(XmlResourceParser.END_DOCUMENT)));
+            assertThat(parser.getEventType()).isIn(XmlResourceParser.START_TAG, XmlResourceParser.END_DOCUMENT);
         }
     }
 
@@ -586,42 +556,32 @@ public class XmlFileLoaderTest {
             throws XmlPullParserException, IOException {
         String[] options = {"foo", "bar"};
         forgeAndOpenDocument("<foo xmlns:bar=\"bar\"/>");
-        assertThat(
-                parser.getAttributeListValue(
-                        "http://www.w3.org/2000/xmlns/",
-                        "xmlns:bar", options, 0),
-                equalTo(1));
+        assertThat(parser.getAttributeListValue(
+                "http://www.w3.org/2000/xmlns/",
+                "xmlns:bar", options, 0)).isEqualTo(1);
 
         forgeAndOpenDocument("<foo xmlns:bar=\"unexpected\"/>");
-        assertThat(
-                parser.getAttributeListValue(
-                        "http://www.w3.org/2000/xmlns/",
-                        "xmlns:bar", options, 0),
-                equalTo(0));
+        assertThat(parser.getAttributeListValue(
+                "http://www.w3.org/2000/xmlns/",
+                "xmlns:bar", options, 0)).isEqualTo(0);
     }
 
     @Test
     public void testGetAttributeBooleanValue_StringStringBoolean()
             throws XmlPullParserException, IOException {
         forgeAndOpenDocument("<foo xmlns:bar=\"true\"/>");
-        assertThat(
-                parser.getAttributeBooleanValue("http://www.w3.org/2000/xmlns/",
-                        "xmlns:bar", false), equalTo(true));
-        assertThat(
-                parser.getAttributeBooleanValue("http://www.w3.org/2000/xmlns/",
-                        "xmlns:foo", false), equalTo(false));
+        assertThat(parser.getAttributeBooleanValue("http://www.w3.org/2000/xmlns/",
+                "xmlns:bar", false)).isTrue();
+        assertThat(parser.getAttributeBooleanValue("http://www.w3.org/2000/xmlns/",
+                "xmlns:foo", false)).isFalse();
     }
 
     @Test
     public void testGetAttributeBooleanValue_IntBoolean()
             throws XmlPullParserException {
         forgeAndOpenDocument("<foo bar=\"true\"/>");
-        assertThat(
-                parser.getAttributeBooleanValue(0, false),
-                equalTo(true));
-        assertThat(
-                parser.getAttributeBooleanValue(attributeIndexOutOfIndex(), false),
-                equalTo(false));
+        assertThat(parser.getAttributeBooleanValue(0, false)).isTrue();
+        assertThat(parser.getAttributeBooleanValue(attributeIndexOutOfIndex(), false)).isFalse();
     }
 
     @Test
@@ -641,17 +601,13 @@ public class XmlFileLoaderTest {
             throws XmlPullParserException {
         forgeAndOpenDocument("<foo xmlns:bar=\"-12\"/>");
 
-        assertThat(
-                parser.getAttributeIntValue(
-                        "http://www.w3.org/2000/xmlns/",
-                        "xmlns:bar", 0),
-                equalTo(-12));
+        assertThat(parser.getAttributeIntValue(
+                "http://www.w3.org/2000/xmlns/",
+                "xmlns:bar", 0)).isEqualTo(-12);
 
-        assertThat(
-                parser.getAttributeIntValue(
-                        "http://www.w3.org/2000/xmlns/",
-                        "xmlns:foo", 0),
-                equalTo(0));
+        assertThat(parser.getAttributeIntValue(
+                "http://www.w3.org/2000/xmlns/",
+                "xmlns:foo", 0)).isEqualTo(0);
     }
 
 
@@ -660,18 +616,12 @@ public class XmlFileLoaderTest {
             throws XmlPullParserException {
         forgeAndOpenDocument("<foo bar=\"-12\"/>");
 
-        assertThat(
-                parser.getAttributeIntValue(0, 0),
-                equalTo(-12));
+        assertThat(parser.getAttributeIntValue(0, 0)).isEqualTo(-12);
 
-        assertThat(
-                parser.getAttributeIntValue(attributeIndexOutOfIndex(), 0),
-                equalTo(0));
+        assertThat(parser.getAttributeIntValue(attributeIndexOutOfIndex(), 0)).isEqualTo(0);
 
         forgeAndOpenDocument("<foo bar=\"unexpected\"/>");
-        assertThat(
-                parser.getAttributeIntValue(0, 0),
-                equalTo(0));
+        assertThat(parser.getAttributeIntValue(0, 0)).isEqualTo(0);
     }
 
     @Test
@@ -679,28 +629,21 @@ public class XmlFileLoaderTest {
             throws XmlPullParserException {
         forgeAndOpenDocument("<foo xmlns:bar=\"12\"/>");
 
-        assertThat(
-                parser.getAttributeUnsignedIntValue(
-                        "http://www.w3.org/2000/xmlns/",
-                        "xmlns:bar", 0),
-                equalTo(12));
+        assertThat(parser.getAttributeUnsignedIntValue(
+                "http://www.w3.org/2000/xmlns/",
+                "xmlns:bar", 0)).isEqualTo(12);
 
-        assertThat(
-                parser.getAttributeUnsignedIntValue(
-                        "http://www.w3.org/2000/xmlns/",
-                        "xmlns:foo", 0),
-                equalTo(0));
+        assertThat(parser.getAttributeUnsignedIntValue(
+                "http://www.w3.org/2000/xmlns/",
+                "xmlns:foo", 0)).isEqualTo(0);
 
         // Negative unsigned int must be
         forgeAndOpenDocument("<foo xmlns:bar=\"-12\"/>");
 
-        assertThat(
-                "Getting a negative number as unsigned should " +
-                        "return the default value.",
-                parser.getAttributeUnsignedIntValue(
-                        "http://www.w3.org/2000/xmlns/",
-                        "xmlns:bar", 0),
-                equalTo(0));
+        assertThat(parser.getAttributeUnsignedIntValue(
+                "http://www.w3.org/2000/xmlns/",
+                "xmlns:bar", 0)).isEqualTo(0).as("Getting a negative number as unsigned should " +
+                "return the default value.");
     }
 
     @Test
@@ -708,23 +651,16 @@ public class XmlFileLoaderTest {
             throws XmlPullParserException {
         forgeAndOpenDocument("<foo bar=\"12\"/>");
 
-        assertThat(
-                parser.getAttributeUnsignedIntValue(0, 0),
-                equalTo(12));
+        assertThat(parser.getAttributeUnsignedIntValue(0, 0)).isEqualTo(12);
 
-        assertThat(
-                parser.getAttributeUnsignedIntValue(
-                        attributeIndexOutOfIndex(), 0),
-                equalTo(0));
+        assertThat(parser.getAttributeUnsignedIntValue(
+                attributeIndexOutOfIndex(), 0)).isEqualTo(0);
 
         // Negative unsigned int must be
         forgeAndOpenDocument("<foo bar=\"-12\"/>");
 
-        assertThat(
-                "Getting a negative number as unsigned should " +
-                        "return the default value.",
-                parser.getAttributeUnsignedIntValue(0, 0),
-                equalTo(0));
+        assertThat(parser.getAttributeUnsignedIntValue(0, 0)).isEqualTo(0).as("Getting a negative number as unsigned should " +
+                "return the default value.");
     }
 
     @Test
@@ -732,24 +668,18 @@ public class XmlFileLoaderTest {
             throws XmlPullParserException {
         forgeAndOpenDocument("<foo xmlns:bar=\"12.01\"/>");
 
-        assertThat(
-                parser.getAttributeFloatValue(
-                        "http://www.w3.org/2000/xmlns/",
-                        "xmlns:bar", 0.0f),
-                equalTo(12.01f));
+        assertThat(parser.getAttributeFloatValue(
+                "http://www.w3.org/2000/xmlns/",
+                "xmlns:bar", 0.0f)).isEqualTo(12.01f);
 
-        assertThat(
-                parser.getAttributeFloatValue(
-                        "http://www.w3.org/2000/xmlns/",
-                        "xmlns:foo", 0.0f),
-                equalTo(0.0f));
+        assertThat(parser.getAttributeFloatValue(
+                "http://www.w3.org/2000/xmlns/",
+                "xmlns:foo", 0.0f)).isEqualTo(0.0f);
 
         forgeAndOpenDocument("<foo bar=\"unexpected\"/>");
-        assertThat(
-                parser.getAttributeFloatValue(
-                        "http://www.w3.org/2000/xmlns/",
-                        "xmlns:bar", 0.0f),
-                equalTo(0.0f));
+        assertThat(parser.getAttributeFloatValue(
+                "http://www.w3.org/2000/xmlns/",
+                "xmlns:bar", 0.0f)).isEqualTo(0.0f);
     }
 
     @Test
@@ -757,19 +687,13 @@ public class XmlFileLoaderTest {
             throws XmlPullParserException, IOException {
         forgeAndOpenDocument("<foo bar=\"12.01\"/>");
 
-        assertThat(
-                parser.getAttributeFloatValue(0, 0.0f),
-                equalTo(12.01f));
+        assertThat(parser.getAttributeFloatValue(0, 0.0f)).isEqualTo(12.01f);
 
-        assertThat(
-                parser.getAttributeFloatValue(
-                        attributeIndexOutOfIndex(), 0.0f),
-                equalTo(0.0f));
+        assertThat(parser.getAttributeFloatValue(
+                attributeIndexOutOfIndex(), 0.0f)).isEqualTo(0.0f);
 
         forgeAndOpenDocument("<foo bar=\"unexpected\"/>");
-        assertThat(
-                parser.getAttributeFloatValue(0, 0.0f),
-                equalTo(0.0f));
+        assertThat(parser.getAttributeFloatValue(0, 0.0f)).isEqualTo(0.0f);
     }
 
     @Test
@@ -777,51 +701,44 @@ public class XmlFileLoaderTest {
             throws XmlPullParserException {
         String[] options = {"foo", "bar"};
         forgeAndOpenDocument("<foo xmlns:bar=\"bar\"/>");
-        assertThat(
-                parser.getAttributeListValue(0, options, 0),
-                equalTo(1));
+        assertThat(parser.getAttributeListValue(0, options, 0)).isEqualTo(1);
 
         forgeAndOpenDocument("<foo xmlns:bar=\"unexpected\"/>");
-        assertThat(
-                parser.getAttributeListValue(
-                        0, options, 0),
-                equalTo(0));
+        assertThat(parser.getAttributeListValue(
+                0, options, 0)).isEqualTo(0);
 
-        assertThat(
-                parser.getAttributeListValue(
-                        attributeIndexOutOfIndex(), options, 0),
-                equalTo(0));
+        assertThat(parser.getAttributeListValue(
+                attributeIndexOutOfIndex(), options, 0)).isEqualTo(0);
     }
 
     @Test
     public void testGetIdAttribute() throws XmlPullParserException, IOException {
         forgeAndOpenDocument("<foo/>");
-        assertThat(parser.getIdAttribute(), equalTo(null));
+        assertThat(parser.getIdAttribute()).isEqualTo(null);
 
         forgeAndOpenDocument("<foo id=\"bar\"/>");
-        assertThat(parser.getIdAttribute(), equalTo("bar"));
+        assertThat(parser.getIdAttribute()).isEqualTo("bar");
     }
 
     @Test
     public void testGetClassAttribute() throws XmlPullParserException, IOException {
         forgeAndOpenDocument("<foo/>");
-        assertThat(parser.getClassAttribute(), equalTo(null));
+        assertThat(parser.getClassAttribute()).isEqualTo(null);
 
         forgeAndOpenDocument("<foo class=\"bar\"/>");
-        assertThat(parser.getClassAttribute(), equalTo("bar"));
+        assertThat(parser.getClassAttribute()).isEqualTo("bar");
     }
 
     @Test
     public void testGetIdAttributeResourceValue_defaultValue() {
-        assertThat(
-                parser.getIdAttributeResourceValue(12), equalTo(12));
+        assertThat(parser.getIdAttributeResourceValue(12)).isEqualTo(12);
     }
 
     @Test
     public void testGetStyleAttribute()
             throws XmlPullParserException {
         forgeAndOpenDocument("<foo/>");
-        assertThat(parser.getStyleAttribute(), equalTo(0));
+        assertThat(parser.getStyleAttribute()).isEqualTo(0);
     }
 
 }

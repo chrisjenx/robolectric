@@ -1,17 +1,13 @@
 package org.robolectric.shadows;
 
-import org.robolectric.TestRunners;
+import android.webkit.SslErrorHandler;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import android.webkit.SslErrorHandler;
-
 import org.robolectric.Robolectric;
+import org.robolectric.TestRunners;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.assertThat;
+import static org.fest.assertions.api.Assertions.assertThat;
 
 
 @RunWith(TestRunners.WithDefaults.class)
@@ -28,20 +24,20 @@ public class SslErrorHandlerTest {
 
     @Test
     public void shouldInheritFromShadowHandler() {
-        assertThat(shadow, instanceOf(ShadowHandler.class));
+        assertThat(shadow).isInstanceOf(ShadowHandler.class);
     }
 
     @Test
     public void shouldRecordCancel() {
-        assertThat(shadow.wasCancelCalled(), equalTo(false));
+        assertThat(shadow.wasCancelCalled()).isFalse();
         handler.cancel();
-        assertThat(shadow.wasCancelCalled(), equalTo(true));
+        assertThat(shadow.wasCancelCalled()).isTrue();
     }
 
     @Test
     public void shouldRecordProceed() {
-        assertThat(shadow.wasProceedCalled(), equalTo(false));
+        assertThat(shadow.wasProceedCalled()).isFalse();
         handler.proceed();
-        assertThat(shadow.wasProceedCalled(), equalTo(true));
+        assertThat(shadow.wasProceedCalled()).isTrue();
     }
 }

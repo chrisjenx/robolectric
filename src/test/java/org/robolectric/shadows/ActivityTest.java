@@ -16,7 +16,6 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
-import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.ApplicationResolver;
@@ -29,8 +28,7 @@ import org.robolectric.util.Transcript;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.hamcrest.core.StringStartsWith.startsWith;
+import static org.fest.assertions.api.Assertions.assertThat;
 import static org.junit.Assert.*;
 import static org.robolectric.Robolectric.application;
 import static org.robolectric.Robolectric.shadowOf;
@@ -67,7 +65,7 @@ public class ActivityTest {
     public void shouldReportDestroyedStatus() {
         DialogLifeCycleActivity activity = new DialogLifeCycleActivity();
         activity.onDestroy();
-        assertThat(shadowOf(activity).isDestroyed(), equalTo(true));
+        assertThat(shadowOf(activity).isDestroyed()).isTrue();
     }
 
     @Test
@@ -119,7 +117,7 @@ public class ActivityTest {
                     new Intent().setData(Uri.parse("content:foo")));
             fail();
         } catch (Exception e) {
-            assertThat(e.getMessage(), startsWith("No intent matches " + requestIntent));
+            assertThat(e.getMessage()).startsWith("No intent matches " + requestIntent);
         }
     }
 
@@ -128,13 +126,13 @@ public class ActivityTest {
         DialogLifeCycleActivity activity = new DialogLifeCycleActivity();
         ShadowActivity shadowActivity = Robolectric.shadowOf(activity);
         Intent intent = new Intent().setClass(activity, DialogLifeCycleActivity.class);
-        assertThat(shadowActivity.getNextStartedActivity(), nullValue());
+        assertThat(shadowActivity.getNextStartedActivity()).isNull();
 
         activity.startActivityForResult(intent, 142);
 
         Intent startedIntent = shadowActivity.getNextStartedActivity();
-        assertThat(startedIntent, notNullValue());
-        assertThat(startedIntent, sameInstance(intent));
+        assertThat(startedIntent).isNotNull();
+        assertThat(startedIntent).isSameAs(intent);
     }
 
     @Test
@@ -146,11 +144,11 @@ public class ActivityTest {
         activity.startActivityForResult(intent, 142);
 
         ShadowActivity.IntentForResult intentForResult = shadowActivity.getNextStartedActivityForResult();
-        assertThat(intentForResult, notNullValue());
-        assertThat(shadowActivity.getNextStartedActivityForResult(), nullValue());
-        assertThat(intentForResult.intent, notNullValue());
-        assertThat(intentForResult.intent, sameInstance(intent));
-        assertThat(intentForResult.requestCode, equalTo(142));
+        assertThat(intentForResult).isNotNull();
+        assertThat(shadowActivity.getNextStartedActivityForResult()).isNull();
+        assertThat(intentForResult.intent).isNotNull();
+        assertThat(intentForResult.intent).isSameAs(intent);
+        assertThat(intentForResult.requestCode).isEqualTo(142);
     }
 
     @Test
@@ -162,11 +160,11 @@ public class ActivityTest {
         activity.startActivityForResult(intent, 142);
 
         ShadowActivity.IntentForResult intentForResult = shadowActivity.peekNextStartedActivityForResult();
-        assertThat(intentForResult, notNullValue());
-        assertThat(shadowActivity.peekNextStartedActivityForResult(), sameInstance(intentForResult));
-        assertThat(intentForResult.intent, notNullValue());
-        assertThat(intentForResult.intent, sameInstance(intent));
-        assertThat(intentForResult.requestCode, equalTo(142));
+        assertThat(intentForResult).isNotNull();
+        assertThat(shadowActivity.peekNextStartedActivityForResult()).isSameAs(intentForResult);
+        assertThat(intentForResult.intent).isNotNull();
+        assertThat(intentForResult.intent).isSameAs(intent);
+        assertThat(intentForResult.requestCode).isEqualTo(142);
     }
 
     @Test
@@ -185,7 +183,7 @@ public class ActivityTest {
     @Test
     public void shouldRetrievePackageNameFromTheManifest() throws Exception {
         Robolectric.application = new ApplicationResolver(newConfig("TestAndroidManifestWithPackageName.xml")).resolveApplication();
-        assertThat("com.wacka.wa", equalTo(new Activity().getPackageName()));
+        assertThat("com.wacka.wa").isEqualTo(new Activity().getPackageName());
     }
 
     @Test
@@ -314,7 +312,7 @@ public class ActivityTest {
         ActivityWithOnCreateDialog activity = new ActivityWithOnCreateDialog();
         activity.showDialog(123);
         assertTrue(activity.onCreateDialogWasCalled);
-        assertThat(ShadowDialog.getLatestDialog(), CoreMatchers.<Object>notNullValue());
+        assertThat(ShadowDialog.getLatestDialog()).isNotNull();
     }
 
     @Test
@@ -341,7 +339,7 @@ public class ActivityTest {
     public void shouldSetOrientation() {
         DialogLifeCycleActivity activity = new DialogLifeCycleActivity();
         activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-        assertThat(activity.getRequestedOrientation(), equalTo(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT));
+        assertThat(activity.getRequestedOrientation()).isEqualTo(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
     @Test
@@ -381,9 +379,7 @@ public class ActivityTest {
 
         for (int mode : modes) {
             activity.setDefaultKeyMode(mode);
-            assertThat("Unexpected key mode",
-                    shadow.getDefaultKeymode(),
-                    equalTo(mode));
+            assertThat(shadow.getDefaultKeymode()).isEqualTo(mode).as("Unexpected key mode");
         }
     }
 
@@ -393,7 +389,7 @@ public class ActivityTest {
         activity.setContentView(R.layout.toplevel_merge);
 
         View contentView = activity.findViewById(android.R.id.content);
-        assertThat(((ViewGroup) contentView).getChildCount(), equalTo(2));
+        assertThat(((ViewGroup) contentView).getChildCount()).isEqualTo(2);
     }
 
     @Test public void setContentView_shouldReplaceOldContentView() throws Exception {
@@ -439,7 +435,7 @@ public class ActivityTest {
         SharedPreferences preferences = activity.getPreferences(Context.MODE_PRIVATE);
         assertNotNull(preferences);
         preferences.edit().putString("foo", "bar").commit();
-        assertThat(activity.getPreferences(Context.MODE_PRIVATE).getString("foo", null), equalTo("bar"));
+        assertThat(activity.getPreferences(Context.MODE_PRIVATE).getString("foo", null)).isEqualTo("bar");
     }
 
     @Test
@@ -449,7 +445,7 @@ public class ActivityTest {
         activity.setContentView(contentView);
 
         FrameLayout contentViewContainer = (FrameLayout) activity.findViewById(android.R.id.content);
-        assertThat(contentViewContainer.getChildAt(0), is(contentView));
+        assertThat(contentViewContainer.getChildAt(0)).isSameAs(contentView);
     }
 
     @Test
@@ -457,7 +453,7 @@ public class ActivityTest {
         Activity activity = new Activity();
 
         FrameLayout contentViewContainer = (FrameLayout) activity.findViewById(android.R.id.content);
-        assertThat(contentViewContainer.getId(), equalTo(android.R.id.content));
+        assertThat(contentViewContainer.getId()).isEqualTo(android.R.id.content);
     }
 
     @Test
@@ -521,20 +517,20 @@ public class ActivityTest {
 
         ShadowActivity shadow = shadowOf(activity);
 
-        assertThat(shadow.getManagedCursors(), notNullValue());
-        assertThat(shadow.getManagedCursors().size(), equalTo(0));
+        assertThat(shadow.getManagedCursors()).isNotNull();
+        assertThat(shadow.getManagedCursors().size()).isEqualTo(0);
 
         Cursor c = Robolectric.newInstanceOf(SQLiteCursor.class);
         activity.startManagingCursor(c);
 
-        assertThat(shadow.getManagedCursors(), notNullValue());
-        assertThat(shadow.getManagedCursors().size(), equalTo(1));
-        assertThat(shadow.getManagedCursors().get(0), sameInstance(c));
+        assertThat(shadow.getManagedCursors()).isNotNull();
+        assertThat(shadow.getManagedCursors().size()).isEqualTo(1);
+        assertThat(shadow.getManagedCursors().get(0)).isSameAs(c);
 
         activity.stopManagingCursor(c);
 
-        assertThat(shadow.getManagedCursors(), notNullValue());
-        assertThat(shadow.getManagedCursors().size(), equalTo(0));
+        assertThat(shadow.getManagedCursors()).isNotNull();
+        assertThat(shadow.getManagedCursors().size()).isEqualTo(0);
     }
 
     private static class TestActivity extends Activity {

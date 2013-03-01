@@ -2,16 +2,14 @@ package org.robolectric.bytecode;
 
 import android.graphics.Bitmap;
 import android.graphics.Paint;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.TestRunners;
 import org.robolectric.internal.Implementation;
 import org.robolectric.internal.Implements;
-import org.junit.Test;
-import org.junit.runner.RunWith;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.fest.assertions.api.Assertions.assertThat;
 
 @RunWith(TestRunners.WithCustomClassList.class)
 public class AndroidTranslatorClassInstrumentedTest {
@@ -23,7 +21,7 @@ public class AndroidTranslatorClassInstrumentedTest {
         Paint paint = new Paint();
         paint.setColor(1234);
 
-        assertThat(paint.getColor(), is(1234));
+        assertThat(paint.getColor()).isEqualTo(1234);
     }
 
     @Test
@@ -31,14 +29,14 @@ public class AndroidTranslatorClassInstrumentedTest {
         Robolectric.bindShadowClass(ShadowClassWithPrivateConstructor.class);
 
         ClassWithPrivateConstructor inst = new ClassWithPrivateConstructor();
-        assertThat(inst.getInt(), is(42));
+        assertThat(inst.getInt()).isEqualTo(42);
     }
 
     @Test
     public void testEnumConstructorsAreNotRewritten() {
         // just referencing this enum value would blow up if we rewrite its constructor
         Bitmap.Config alpha8 = Bitmap.Config.ALPHA_8;
-        assertThat(alpha8.toString(), equalTo("ALPHA_8"));
+        assertThat(alpha8.toString()).isEqualTo("ALPHA_8");
     }
 
     /*
@@ -50,8 +48,8 @@ public class AndroidTranslatorClassInstrumentedTest {
         Robolectric.bindShadowClass(ShadowCustomPaint.class);
 
         CustomPaint customPaint = new CustomPaint();
-        assertThat(customPaint.getColor(), equalTo(10));
-        assertThat(customPaint.getColorName(), equalTo("rainbow"));
+        assertThat(customPaint.getColor()).isEqualTo(10);
+        assertThat(customPaint.getColorName()).isEqualTo("rainbow");
     }
 
     /*
@@ -63,8 +61,8 @@ public class AndroidTranslatorClassInstrumentedTest {
         Robolectric.bindShadowClass(ShadowCustomXmasPaint.class);
 
         CustomXmasPaint customXmasPaint = new CustomXmasPaint();
-        assertThat(customXmasPaint.getColor(), equalTo(999));
-        assertThat(customXmasPaint.getColorName(), equalTo("XMAS"));
+        assertThat(customXmasPaint.getColor()).isEqualTo(999);
+        assertThat(customXmasPaint.getColorName()).isEqualTo("XMAS");
     }
 
     public static class ClassWithPrivateConstructor {

@@ -4,12 +4,11 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.os.IInterface;
 import android.os.RemoteCallbackList;
-import org.robolectric.TestRunners;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.TestRunners;
 
-import static org.hamcrest.CoreMatchers.sameInstance;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.fest.assertions.api.Assertions.assertThat;
 
 @RunWith(TestRunners.WithDefaults.class)
 public class RemoteCallbackListTest {
@@ -21,7 +20,7 @@ public class RemoteCallbackListTest {
 
         fooRemoteCallbackList.beginBroadcast();
 
-        assertThat(fooRemoteCallbackList.getBroadcastItem(0), sameInstance(callback));
+        assertThat(fooRemoteCallbackList.getBroadcastItem(0)).isSameAs(callback);
     }
 
     public static class Foo implements IInterface {

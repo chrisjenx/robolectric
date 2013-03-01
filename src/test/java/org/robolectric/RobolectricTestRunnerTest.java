@@ -3,15 +3,15 @@ package org.robolectric;
 import android.app.Application;
 import android.content.res.Resources;
 import android.widget.TextView;
-import org.robolectric.annotation.DisableStrictI18n;
-import org.robolectric.annotation.EnableStrictI18n;
-import org.robolectric.annotation.Values;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.model.InitializationError;
+import org.robolectric.annotation.DisableStrictI18n;
+import org.robolectric.annotation.EnableStrictI18n;
+import org.robolectric.annotation.Values;
 
-import static org.robolectric.Robolectric.shadowOf;
 import static org.junit.Assert.*;
+import static org.robolectric.Robolectric.shadowOf;
 
 @RunWith(RobolectricTestRunnerTest.RunnerForTesting.class)
 public class RobolectricTestRunnerTest {
@@ -54,12 +54,6 @@ public class RobolectricTestRunnerTest {
     @DisableStrictI18n
     public void internalBeforeTest_clearsShadowApplicationStrictI18n() {
         assertFalse(Robolectric.getShadowApplication().isStrictI18n());
-    }
-
-    @Test
-    @Values(locale = "fr")
-    public void internalBeforeTest_setLocale() {
-        assertEquals("fr", Robolectric.shadowOf(Robolectric.getShadowApplication().getResources().getConfiguration()).getQualifiers());
     }
 
     @Test

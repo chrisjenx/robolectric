@@ -2,14 +2,15 @@ package org.robolectric.shadows;
 
 import android.content.ClipboardManager;
 import android.content.Context;
-import org.robolectric.Robolectric;
-import org.robolectric.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
+import org.robolectric.TestRunners;
 
-import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.*;
+import static org.fest.assertions.api.Assertions.assertThat;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(TestRunners.WithDefaults.class)
 public class ClipboardManagerTest {
@@ -23,7 +24,7 @@ public class ClipboardManagerTest {
     @Test
     public void shouldStoreText() throws Exception {
         clipboardManager.setText("BLARG!!!");
-        assertThat(clipboardManager.getText().toString(), equalTo("BLARG!!!"));
+        assertThat(clipboardManager.getText().toString()).isEqualTo("BLARG!!!");
     }
 
     @Test

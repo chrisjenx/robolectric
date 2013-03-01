@@ -1,16 +1,13 @@
 package org.robolectric.shadows;
 
 import android.widget.ProgressBar;
-import org.robolectric.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.TestRunners;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.fest.assertions.api.Assertions.assertThat;
+import static org.junit.Assert.*;
 
 @RunWith(TestRunners.WithDefaults.class)
 public class ProgressBarTest {
@@ -25,14 +22,14 @@ public class ProgressBarTest {
 
     @Test
     public void shouldInitMaxTo100() {
-        assertThat(progressBar.getMax(), equalTo(100));
+        assertThat(progressBar.getMax()).isEqualTo(100);
     }
 
     @Test
     public void testMax() {
         for (int max : testValues) {
             progressBar.setMax(max);
-            assertThat(progressBar.getMax(), equalTo(max));
+            assertThat(progressBar.getMax()).isEqualTo(max);
         }
     }
 
@@ -40,7 +37,7 @@ public class ProgressBarTest {
     public void testProgress() {
         for (int progress : testValues) {
             progressBar.setProgress(progress);
-            assertThat(progressBar.getProgress(), equalTo(progress));
+            assertThat(progressBar.getProgress()).isEqualTo(progress);
         }
     }
 
@@ -48,7 +45,7 @@ public class ProgressBarTest {
     public void testSecondaryProgress() {
         for (int progress : testValues) {
             progressBar.setSecondaryProgress(progress);
-            assertThat(progressBar.getSecondaryProgress(), equalTo(progress));
+            assertThat(progressBar.getSecondaryProgress()).isEqualTo(progress);
         }
     }
 

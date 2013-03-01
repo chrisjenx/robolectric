@@ -4,17 +4,15 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.telephony.TelephonyManager;
-
-import org.robolectric.Robolectric;
-import org.robolectric.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
+import org.robolectric.TestRunners;
 
-import static org.robolectric.Robolectric.shadowOf;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.sameInstance;
+import static org.fest.assertions.api.Assertions.assertThat;
 import static org.junit.Assert.*;
+import static org.robolectric.Robolectric.shadowOf;
 
 @RunWith(TestRunners.WithDefaults.class)
 public class ConnectivityManagerTest {
@@ -48,8 +46,8 @@ public class ConnectivityManagerTest {
         NetworkInfo networkInfo = ShadowNetworkInfo.newInstance(NetworkInfo.DetailedState.CONNECTING);
         shadowConnectivityManager.setNetworkInfo(ConnectivityManager.TYPE_WIFI, networkInfo);
         NetworkInfo actual = connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
-        assertThat(actual, sameInstance(networkInfo));
-        assertThat(actual.getDetailedState(), is(NetworkInfo.DetailedState.CONNECTING));
+        assertThat(actual).isSameAs(networkInfo);
+        assertThat(actual.getDetailedState()).isEqualTo(NetworkInfo.DetailedState.CONNECTING);
     }
 
     @Test

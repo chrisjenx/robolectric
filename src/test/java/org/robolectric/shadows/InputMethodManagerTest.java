@@ -1,17 +1,14 @@
 package org.robolectric.shadows;
 
-import org.robolectric.TestRunners;
+import android.app.Activity;
+import android.view.inputmethod.InputMethodManager;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import android.app.Activity;
-import android.view.inputmethod.InputMethodManager;
-
 import org.robolectric.Robolectric;
+import org.robolectric.TestRunners;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.fest.assertions.api.Assertions.assertThat;
 
 @RunWith(TestRunners.WithDefaults.class)
 public class InputMethodManagerTest {
@@ -27,12 +24,12 @@ public class InputMethodManagerTest {
     
     @Test
     public void shouldRecordSoftInputVisibility() {
-    	assertThat(shadow.isSoftInputVisible(), equalTo(false));
+        assertThat(shadow.isSoftInputVisible()).isFalse();
     	
     	manager.showSoftInput(null, 0);
-       	assertThat(shadow.isSoftInputVisible(), equalTo(true));
+        assertThat(shadow.isSoftInputVisible()).isTrue();
     	
     	manager.hideSoftInputFromWindow(null, 0);
-       	assertThat(shadow.isSoftInputVisible(), equalTo(false));
+        assertThat(shadow.isSoftInputVisible()).isFalse();
     }   
 }

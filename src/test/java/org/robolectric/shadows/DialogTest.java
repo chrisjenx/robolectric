@@ -6,21 +6,18 @@ import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.robolectric.R;
 import org.robolectric.Robolectric;
 import org.robolectric.TestRunners;
 import org.robolectric.util.Transcript;
-import org.junit.Test;
-import org.junit.runner.RunWith;
 
-import static org.robolectric.util.TestUtil.assertInstanceOf;
 import static junit.framework.Assert.*;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.CoreMatchers.sameInstance;
-import static org.hamcrest.core.IsEqual.equalTo;
+import static org.fest.assertions.api.Assertions.assertThat;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
+import static org.robolectric.util.TestUtil.assertInstanceOf;
 
 @RunWith(TestRunners.WithDefaults.class)
 public class DialogTest {
@@ -32,7 +29,7 @@ public class DialogTest {
         dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
             @Override
             public void onDismiss(DialogInterface dialogInListener) {
-                assertThat((Dialog) dialogInListener, sameInstance(dialog));
+                assertThat((Dialog) dialogInListener).isSameAs(dialog);
                 transcript.add("onDismiss called!");
             }
         });
@@ -74,14 +71,14 @@ public class DialogTest {
         ShadowDialog shadow = Robolectric.shadowOf(dialog);
 
         dialog.setCancelable(false);
-        assertThat(shadow.isCancelable(), equalTo(false));
+        assertThat(shadow.isCancelable()).isFalse();
     }
 
     @Test
     public void shouldDismissTheRealDialogWhenCancelled() throws Exception {
         TestDialog dialog = new TestDialog();
         dialog.cancel();
-        assertThat(dialog.wasDismissed, equalTo(true));
+        assertThat(dialog.wasDismissed).isTrue();
     }
 
     @Test
@@ -89,7 +86,7 @@ public class DialogTest {
         Dialog dialog = new Dialog(null);
         ShadowDialog shadow = Robolectric.shadowOf(dialog);
 
-        assertThat(shadow.isCancelable(), equalTo(true));
+        assertThat(shadow.isCancelable()).isTrue();
     }
 
     @Test
@@ -125,11 +122,11 @@ public class DialogTest {
 
     @Test
     public void getLatestDialog_shouldReturnARealDialog() throws Exception {
-        assertThat(ShadowDialog.getLatestDialog(), nullValue());
+        assertThat(ShadowDialog.getLatestDialog()).isNull();
 
         Dialog dialog = new Dialog(null);
         dialog.show();
-        assertThat(ShadowDialog.getLatestDialog(), sameInstance(dialog));
+        assertThat(ShadowDialog.getLatestDialog()).isSameAs(dialog);
     }
 
     @Test

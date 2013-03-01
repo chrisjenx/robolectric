@@ -1,12 +1,11 @@
 package org.robolectric.shadows;
 
 import android.content.IntentFilter;
-import org.robolectric.TestRunners;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.TestRunners;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.fest.assertions.api.Assertions.assertThat;
 
 @RunWith(TestRunners.WithDefaults.class)
 public class IntentFilterTest {
@@ -16,8 +15,8 @@ public class IntentFilterTest {
         intentFilter.addDataScheme("http");
         intentFilter.addDataScheme("ftp");
 
-        assertThat(intentFilter.getDataScheme(0), equalTo("http"));
-        assertThat(intentFilter.getDataScheme(1), equalTo("ftp"));
+        assertThat(intentFilter.getDataScheme(0)).isEqualTo("http");
+        assertThat(intentFilter.getDataScheme(1)).isEqualTo("ftp");
     }
     
     @Test
@@ -26,9 +25,9 @@ public class IntentFilterTest {
         intentFilter.addDataAuthority("test.com", "8080");
         intentFilter.addDataAuthority("example.com", "42");
 
-        assertThat(intentFilter.getDataAuthority(0).getHost(), equalTo("test.com"));
-        assertThat(intentFilter.getDataAuthority(0).getPort(), equalTo(8080));
-        assertThat(intentFilter.getDataAuthority(1).getHost(), equalTo("example.com"));
-        assertThat(intentFilter.getDataAuthority(1).getPort(), equalTo(42));
+        assertThat(intentFilter.getDataAuthority(0).getHost()).isEqualTo("test.com");
+        assertThat(intentFilter.getDataAuthority(0).getPort()).isEqualTo(8080);
+        assertThat(intentFilter.getDataAuthority(1).getHost()).isEqualTo("example.com");
+        assertThat(intentFilter.getDataAuthority(1).getPort()).isEqualTo(42);
     }
 }

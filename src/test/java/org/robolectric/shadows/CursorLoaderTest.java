@@ -3,12 +3,11 @@ package org.robolectric.shadows;
 import android.app.Activity;
 import android.net.Uri;
 import android.support.v4.content.CursorLoader;
-import org.robolectric.TestRunners;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.TestRunners;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.fest.assertions.api.Assertions.assertThat;
 
 @RunWith(TestRunners.WithDefaults.class)
 public class CursorLoaderTest {
@@ -25,12 +24,12 @@ public class CursorLoaderTest {
                 selection,
                 selectionArgs,
                 sortOrder);
-        
-        assertThat(cursorLoader.getUri(), equalTo(uri));
-        assertThat(cursorLoader.getProjection(), equalTo(projection));
-        assertThat(cursorLoader.getSelection(), equalTo(selection));
-        assertThat(cursorLoader.getSelectionArgs(), equalTo(selectionArgs));
-        assertThat(cursorLoader.getSortOrder(), equalTo(sortOrder));
+
+        assertThat(cursorLoader.getUri()).isEqualTo(uri);
+        assertThat(cursorLoader.getProjection()).isEqualTo(projection);
+        assertThat(cursorLoader.getSelection()).isEqualTo(selection);
+        assertThat(cursorLoader.getSelectionArgs()).isEqualTo(selectionArgs);
+        assertThat(cursorLoader.getSortOrder()).isEqualTo(sortOrder);
     }
     
     @Test
@@ -46,11 +45,11 @@ public class CursorLoaderTest {
         cursorLoader.setSelection(selection);
         cursorLoader.setSelectionArgs(selectionArgs);
         cursorLoader.setSortOrder(sortOrder);
-        
-        assertThat(cursorLoader.getUri(), equalTo(uri));
-        assertThat(cursorLoader.getProjection(), equalTo(projection));
-        assertThat(cursorLoader.getSelection(), equalTo(selection));
-        assertThat(cursorLoader.getSelectionArgs(), equalTo(selectionArgs));
-        assertThat(cursorLoader.getSortOrder(), equalTo(sortOrder));
+
+        assertThat(cursorLoader.getUri()).isEqualTo(uri);
+        assertThat(cursorLoader.getProjection()).isEqualTo(projection);
+        assertThat(cursorLoader.getSelection()).isEqualTo(selection);
+        assertThat(cursorLoader.getSelectionArgs()).isEqualTo(selectionArgs);
+        assertThat(cursorLoader.getSortOrder()).isEqualTo(sortOrder);
     }
 }

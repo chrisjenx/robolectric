@@ -3,16 +3,13 @@ package org.robolectric.shadows;
 import android.app.Activity;
 import android.app.Dialog;
 import android.preference.PreferenceScreen;
-import org.robolectric.Robolectric;
-import org.robolectric.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
+import org.robolectric.TestRunners;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.CoreMatchers.sameInstance;
-import static org.junit.Assert.assertThat;
+import static org.fest.assertions.api.Assertions.assertThat;
 
 @RunWith(TestRunners.WithDefaults.class)
 public class PreferenceScreenTest {
@@ -28,15 +25,15 @@ public class PreferenceScreenTest {
     
 	@Test
 	public void shouldInheritFromPreferenceGroup() {
-		assertThat(shadow, instanceOf(ShadowPreferenceGroup.class));
+        assertThat(shadow).isInstanceOf(ShadowPreferenceGroup.class);
 	}
 	
 	@Test
 	public void shouldSetDialog() {
 		Dialog dialog = new Dialog(new Activity());
-		
-		assertThat(screen.getDialog(), nullValue());
+
+        assertThat(screen.getDialog()).isNull();
 		shadow.setDialog(dialog);
-		assertThat(screen.getDialog(), sameInstance(dialog));		
+        assertThat(screen.getDialog()).isSameAs(dialog);
 	}
 }

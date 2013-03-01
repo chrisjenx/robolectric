@@ -7,14 +7,13 @@ import android.text.Html;
 import android.text.Spanned;
 import android.widget.EditText;
 import android.widget.TextView;
-import org.robolectric.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.TestRunners;
 
-import static org.hamcrest.CoreMatchers.equalTo;
+import static org.fest.assertions.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 @RunWith(TestRunners.WithDefaults.class)
 public class HtmlTest {
@@ -29,14 +28,14 @@ public class HtmlTest {
     public void shouldBeAbleToGetTextFromTextViewAfterUsingSetTextWithHtmlDotFromHtml() throws Exception {
         TextView textView = new TextView(context);
         textView.setText(Html.fromHtml("<b>some</b> html text"));
-        assertThat(textView.getText().toString(), equalTo("<b>some</b> html text"));
+        assertThat(textView.getText().toString()).isEqualTo("<b>some</b> html text");
     }
 
     @Test
     public void shouldBeAbleToGetTextFromEditTextAfterUsingSetTextWithHtmlDotFromHtml() throws Exception {
         EditText editText = new EditText(context);
         editText.setText(Html.fromHtml("<b>some</b> html text"));
-        assertThat(editText.getText().toString(), equalTo("<b>some</b> html text"));
+        assertThat(editText.getText().toString()).isEqualTo("<b>some</b> html text");
     }
 
     @Test(expected = NullPointerException.class)

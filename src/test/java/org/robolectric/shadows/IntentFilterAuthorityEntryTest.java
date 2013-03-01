@@ -1,12 +1,11 @@
 package org.robolectric.shadows;
 
 import android.content.IntentFilter;
-import org.robolectric.TestRunners;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.TestRunners;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.fest.assertions.api.Assertions.assertThat;
 
 @RunWith(TestRunners.WithDefaults.class)
 public class IntentFilterAuthorityEntryTest {
@@ -18,6 +17,6 @@ public class IntentFilterAuthorityEntryTest {
     @Test
     public void constructor_shouldAllowNullPortAndSetToNegativeOne() throws Exception {
         IntentFilter.AuthorityEntry authorityEntry = new IntentFilter.AuthorityEntry("host", null);
-        assertThat(authorityEntry.getPort(), equalTo(-1));
+        assertThat(authorityEntry.getPort()).isEqualTo(-1);
     }
 }

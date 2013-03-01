@@ -19,13 +19,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.hamcrest</groupId>
-            <artifactId>hamcrest-core</artifactId>
-            <version>1.2</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit-dep</artifactId>
             <version>4.8.2</version>
@@ -117,6 +110,13 @@
             <groupId>android.support</groupId>
             <artifactId>compatibility-v4</artifactId>
             <version>12</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.easytesting</groupId>
+            <artifactId>fest-assert-core</artifactId>
+            <version>2.0M9</version>
+            <scope>test</scope>
         </dependency>
 
         <dependency>

@@ -2,20 +2,15 @@ package org.robolectric.shadows;
 
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
-import org.robolectric.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.TestRunners;
 
 import static android.content.Context.TELEPHONY_SERVICE;
-import static org.robolectric.Robolectric.application;
-import static org.robolectric.Robolectric.newInstanceOf;
-import static org.robolectric.Robolectric.shadowOf;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.sameInstance;
+import static org.fest.assertions.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.robolectric.Robolectric.*;
 
 @RunWith(TestRunners.WithDefaults.class)
 public class TelephonyManagerTest {
@@ -35,9 +30,9 @@ public class TelephonyManagerTest {
 	@Test
 	public void testListen() {
 		manager.listen(listener, PhoneStateListener.LISTEN_CALL_STATE);
-		assertThat(shadowManager.getListener(), notNullValue());
-		assertThat((MyPhoneStateListener) shadowManager.getListener(), sameInstance(listener));
-		assertThat(shadowManager.getEventFlags(), equalTo(PhoneStateListener.LISTEN_CALL_STATE));
+        assertThat(shadowManager.getListener()).isNotNull();
+        assertThat((MyPhoneStateListener) shadowManager.getListener()).isSameAs(listener);
+        assertThat(shadowManager.getEventFlags()).isEqualTo(PhoneStateListener.LISTEN_CALL_STATE);
 	}
 
     @Test

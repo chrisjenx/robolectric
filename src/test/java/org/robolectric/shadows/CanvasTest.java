@@ -1,17 +1,23 @@
 package org.robolectric.shadows;
 
-import android.graphics.*;
-import org.robolectric.Robolectric;
-import org.robolectric.TestRunners;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Matrix;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.Rect;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
+import org.robolectric.TestRunners;
 
+import static org.fest.assertions.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.robolectric.Robolectric.shadowOf;
 import static org.robolectric.shadows.ShadowPath.Point.Type.LINE_TO;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 @RunWith(TestRunners.WithDefaults.class)
 public class CanvasTest {
@@ -90,9 +96,9 @@ public class CanvasTest {
         canvas.drawPath(path, paint);
 
         ShadowCanvas shadow = shadowOf(canvas);
-        assertThat(shadow.getPathPaintHistoryCount(), equalTo(1));
+        assertThat(shadow.getPathPaintHistoryCount()).isEqualTo(1);
         assertEquals(shadowOf(shadow.getDrawnPath(0)).getPoints().get(0), new ShadowPath.Point(10, 10, LINE_TO));
-        assertThat(shadow.getDrawnPathPaint(0), equalTo(paint));
+        assertThat(shadow.getDrawnPathPaint(0)).isEqualTo(paint);
     }
 
     @Test
@@ -109,7 +115,7 @@ public class CanvasTest {
         canvas.drawPath(path, paint);
 
         ShadowCanvas shadow = shadowOf(canvas);
-        assertThat(shadow.getPathPaintHistoryCount(), equalTo(2));
+        assertThat(shadow.getPathPaintHistoryCount()).isEqualTo(2);
         assertEquals(shadowOf(shadow.getDrawnPath(0)).getPoints().get(0), new ShadowPath.Point(10, 10, LINE_TO));
         assertEquals(shadowOf(shadow.getDrawnPath(1)).getPoints().get(0), new ShadowPath.Point(20, 20, LINE_TO));
     }
@@ -144,8 +150,8 @@ public class CanvasTest {
         ShadowCanvas shadow = shadowOf(canvas);
         shadow.resetCanvasHistory();
 
-        assertThat(shadow.getPathPaintHistoryCount(), equalTo(0));
-        assertThat(shadow.getTextHistoryCount(), equalTo(0));
+        assertThat(shadow.getPathPaintHistoryCount()).isEqualTo(0);
+        assertThat(shadow.getTextHistoryCount()).isEqualTo(0);
         assertEquals("", shadow.getDescription());
     }
 
@@ -170,7 +176,7 @@ public class CanvasTest {
         canvas.drawText("hello 2", 4, 6, paint2);
         ShadowCanvas shadowCanvas = shadowOf(canvas);
 
-        assertThat(shadowCanvas.getTextHistoryCount(), equalTo(2));
+        assertThat(shadowCanvas.getTextHistoryCount()).isEqualTo(2);
 
         assertEquals(1f, shadowCanvas.getDrawnTextEvent(0).x, 0);
         assertEquals(2f, shadowCanvas.getDrawnTextEvent(0).y, 0);

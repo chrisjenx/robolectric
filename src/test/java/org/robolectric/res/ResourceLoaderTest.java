@@ -1,27 +1,24 @@
 package org.robolectric.res;
 
-
 import android.preference.PreferenceActivity;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.TextView;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.robolectric.R;
 import org.robolectric.Robolectric;
 import org.robolectric.TestRunners;
 import org.robolectric.annotation.Values;
 import org.robolectric.res.builder.LayoutBuilder;
 import org.robolectric.util.I18nException;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
 
-import java.util.Arrays;
-
+import static org.fest.assertions.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.robolectric.Robolectric.shadowOf;
 import static org.robolectric.util.TestUtil.resourceFile;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.core.IsCollectionContaining.hasItems;
-import static org.junit.Assert.*;
 
 @RunWith(TestRunners.WithDefaults.class)
 public class ResourceLoaderTest {
@@ -71,7 +68,7 @@ public class ResourceLoaderTest {
         ViewGroup viewGroup = new FrameLayout(Robolectric.application);
         ViewGroup view = (ViewGroup) new LayoutBuilder(resourceLoader).inflateView(Robolectric.application, R.layout.different_screen_sizes, viewGroup, "doesnotexist-land-xlarge");
         TextView textView = (TextView) view.findViewById(android.R.id.text1);
-        assertThat(textView.getText().toString(), equalTo("land"));
+        assertThat(textView.getText().toString()).isEqualTo("land");
     }
 
     @Test
@@ -89,53 +86,50 @@ public class ResourceLoaderTest {
         ViewGroup viewGroup = new FrameLayout(Robolectric.application);
         ViewGroup view = (ViewGroup) new LayoutBuilder(resourceLoader).inflateView(Robolectric.application, R.layout.different_screen_sizes, viewGroup, "");
         TextView textView = (TextView) view.findViewById(android.R.id.text1);
-        assertThat(textView.getText().toString(), equalTo("default"));
+        assertThat(textView.getText().toString()).isEqualTo("default");
         Robolectric.shadowOf(Robolectric.getShadowApplication().getResources().getConfiguration()).overrideQualifiers("land"); // testing if this pollutes the other test
     }
     
     @Test
     public void testStringsAreResolved() throws Exception {
         ResourceLoader resourceLoader = Robolectric.getShadowApplication().getResourceLoader();
-        assertThat(Arrays.asList(resourceLoader.getStringArrayValue(resourceLoader.getResourceIndex().getResName(R.array.items), "")), hasItems("foo", "bar"));
+        assertThat(resourceLoader.getStringArrayValue(resourceLoader.getResourceIndex().getResName(R.array.items), "")).containsExactly("foo", "bar");
     }
 
     @Test
     public void testStringsAreWithReferences() throws Exception {
         ResourceLoader resourceLoader = Robolectric.getShadowApplication().getResourceLoader();
-        assertThat(Arrays.asList(resourceLoader.getStringArrayValue(resourceLoader.getResourceIndex().getResName(R.array.greetings), "")), hasItems("hola", "Hello"));
+        assertThat(resourceLoader.getStringArrayValue(resourceLoader.getResourceIndex().getResName(R.array.greetings), "")).containsExactly("hola", "Hello");
     }
 
     @Test
     public void shouldAddAndroidToSystemStringArrayName() throws Exception {
         ResourceLoader resourceLoader = Robolectric.getShadowApplication().getResourceLoader();
-        assertThat(Arrays.asList(resourceLoader.getStringArrayValue(resourceLoader.getResourceIndex().getResName(android.R.array.emailAddressTypes), "")), hasItems("Home", "Work", "Other", "Custom"));
-        assertThat(Arrays.asList(resourceLoader.getStringArrayValue(resourceLoader.getResourceIndex().getResName(R.array.emailAddressTypes), "")), hasItems("Doggy", "Catty"));
+        assertThat(resourceLoader.getStringArrayValue(resourceLoader.getResourceIndex().getResName(android.R.array.emailAddressTypes), "")).containsExactly("Home", "Work", "Other", "Custom");
+        assertThat(resourceLoader.getStringArrayValue(resourceLoader.getResourceIndex().getResName(R.array.emailAddressTypes), "")).containsExactly("Doggy", "Catty");
     }
 
     @Test
     public void testIntegersAreResolved() throws Exception {
         ResourceLoader resourceLoader = Robolectric.getShadowApplication().getResourceLoader();
-        assertThat(resourceLoader.getIntegerArrayValue(resourceLoader.getResourceIndex().getResName(R.array.zero_to_four_int_array), ""),
-                equalTo(new int[]{0, 1, 2, 3, 4}));
+        assertThat(resourceLoader.getIntegerArrayValue(resourceLoader.getResourceIndex().getResName(R.array.zero_to_four_int_array), "")).isEqualTo(new int[]{0, 1, 2, 3, 4});
     }
 
     @Test
     public void testEmptyArray() throws Exception {
         ResourceLoader resourceLoader = Robolectric.getShadowApplication().getResourceLoader();
-        assertThat(resourceLoader.getIntegerArrayValue(resourceLoader.getResourceIndex().getResName(R.array.empty_int_array), "").length,
-                equalTo(0));
+        assertThat(resourceLoader.getIntegerArrayValue(resourceLoader.getResourceIndex().getResName(R.array.empty_int_array), "").length).isEqualTo(0);
     }
 
     @Test
     public void testIntegersWithReferences() throws Exception {
         ResourceLoader resourceLoader = Robolectric.getShadowApplication().getResourceLoader();
-        assertThat(resourceLoader.getIntegerArrayValue(resourceLoader.getResourceIndex().getResName(R.array.with_references_int_array), ""),
-                equalTo(new int[]{0, 2000, 1}));
+        assertThat(resourceLoader.getIntegerArrayValue(resourceLoader.getResourceIndex().getResName(R.array.with_references_int_array), "")).isEqualTo(new int[]{0, 2000, 1});
     }
 
     @Test public void shouldLoadForAllQualifiers() throws Exception {
         ResourceLoader resourceLoader = new PackageResourceLoader(resourcePath);
-        assertThat(resourceLoader.getStringValue(resourceLoader.getResourceIndex().getResName(R.string.hello), ""), equalTo("Hello"));
-        assertThat(resourceLoader.getStringValue(resourceLoader.getResourceIndex().getResName(R.string.hello), "fr"), equalTo("Bonjour"));
+        assertThat(resourceLoader.getStringValue(resourceLoader.getResourceIndex().getResName(R.string.hello), "")).isEqualTo("Hello");
+        assertThat(resourceLoader.getStringValue(resourceLoader.getResourceIndex().getResName(R.string.hello), "fr")).isEqualTo("Bonjour");
     }
 }

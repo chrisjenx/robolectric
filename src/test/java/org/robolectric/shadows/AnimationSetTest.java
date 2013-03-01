@@ -1,17 +1,19 @@
 package org.robolectric.shadows;
 
-import java.util.List;
-
-import org.robolectric.TestRunners;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.view.animation.AnimationSet;
+import android.view.animation.RotateAnimation;
+import android.view.animation.TranslateAnimation;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.TestRunners;
 
-import android.view.animation.*;
+import java.util.List;
 
+import static org.fest.assertions.api.Assertions.assertThat;
 import static org.robolectric.Robolectric.shadowOf;
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.assertThat;
 
 @RunWith(TestRunners.WithDefaults.class)
 public class AnimationSetTest {
@@ -35,10 +37,10 @@ public class AnimationSetTest {
 		set.addAnimation(rotate);
 		
 		List<Animation> list = shadow.getAnimations();
-		assertThat(list.size(), equalTo(3));
-		assertThat(list.get(0), sameInstance(alpha));
-		assertThat(list.get(1), sameInstance(translate));
-		assertThat(list.get(2), sameInstance(rotate));
+        assertThat(list.size()).isEqualTo(3);
+        assertThat(list.get(0)).isSameAs(alpha);
+        assertThat(list.get(1)).isSameAs(translate);
+        assertThat(list.get(2)).isSameAs(rotate);
 	}
 
 }

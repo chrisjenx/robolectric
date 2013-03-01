@@ -1,19 +1,18 @@
 package org.robolectric.shadows;
 
 import android.widget.EditText;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.robolectric.R;
 import org.robolectric.Robolectric;
 import org.robolectric.TestRunners;
 import org.robolectric.res.Attribute;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.fest.assertions.api.Assertions.assertThat;
 
 @RunWith(TestRunners.WithDefaults.class)
 public class ShadowEditTextTest {
@@ -30,12 +29,12 @@ public class ShadowEditTextTest {
     @Test
     public void shouldRespectMaxLength() throws Exception {
         editText.setText("0123456678");
-        assertThat(editText.getText().toString(), equalTo("01234"));
+        assertThat(editText.getText().toString()).isEqualTo("01234");
     }
     
     @Test
     public void shouldAcceptNullStrings() {
         editText.setText(null);
-        assertThat(editText.getText().toString(), equalTo(""));
+        assertThat(editText.getText().toString()).isEqualTo("");
     }
 }
