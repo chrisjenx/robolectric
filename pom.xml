@@ -3,11 +3,11 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>org.sonatype.oss</groupId>
-        <artifactId>oss-parent</artifactId>
-        <version>5</version>
-    </parent>
+    <!--<parent>-->
+        <!--<groupId>org.sonatype.oss</groupId>-->
+        <!--<artifactId>oss-parent</artifactId>-->
+        <!--<version>5</version>-->
+    <!--</parent>-->
 
     <groupId>org.robolectric</groupId>
     <artifactId>robolectric</artifactId>
@@ -16,6 +16,18 @@
     <name>Robolectric</name>
     <description>An alternative Android testing framework.</description>
     <url>http://robolectric.org/</url>
+
+    <repositories>
+        <repository>
+            <id>bizzby.mvn.repo</id>
+            <url>https://github.com/Bizzby/public-mvn-repo/raw/master</url>
+            <!-- use snapshot version -->
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+            </snapshots>
+        </repository>
+    </repositories>
 
     <dependencies>
         <dependency>
