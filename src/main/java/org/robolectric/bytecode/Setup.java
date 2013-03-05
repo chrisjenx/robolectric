@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -143,6 +144,7 @@ public class Setup {
 
     public Set<MethodRef> methodsToIntercept() {
         return Collections.unmodifiableSet(new HashSet<MethodRef>(asList(
+                new MethodRef(LinkedHashMap.class, "eldest"),
                 new MethodRef(System.class, "loadLibrary"),
                 new MethodRef("android.os.StrictMode", "trackActivity"),
                 new MethodRef("com.android.i18n.phonenumbers.Phonenumber$PhoneNumber", "*"),
@@ -153,6 +155,7 @@ public class Setup {
 
     /**
      * Map from a requested class to an alternate stand-in, or not.
+     *
      * @return
      */
     public Map<String, String> classNameTranslations() {
