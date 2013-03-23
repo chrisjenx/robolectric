@@ -40,10 +40,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
-import static org.objectweb.asm.Type.ARRAY;
-import static org.objectweb.asm.Type.OBJECT;
-import static org.objectweb.asm.Type.VOID;
-import static org.objectweb.asm.Type.getType;
+import static org.objectweb.asm.Type.*;
 import static org.robolectric.util.Util.readBytes;
 import static org.robolectric.util.Util.reverse;
 
@@ -58,7 +55,7 @@ public class AsmInstrumentingClassLoader extends ClassLoader implements Opcodes,
     private final Setup setup;
     private final URLClassLoader urls;
     private final Map<String, Class> classes = new HashMap<String, Class>();
-    private Set<Setup.MethodRef> methodsToIntercept;
+    private final Set<Setup.MethodRef> methodsToIntercept;
     private final Map<String, String> classesToRemap;
 
     public static final String DIRECT_OBJECT_MARKER_TYPE_DESC = Type.getObjectType(DirectObjectMarker.class.getName().replace('.', '/')).getDescriptor();
@@ -402,6 +399,13 @@ public class AsmInstrumentingClassLoader extends ClassLoader implements Opcodes,
 //            for (MethodNode method : (List<MethodNode>)classNode.methods) {
 //                System.out.println("method = " + method.name + method.desc);
 //            }
+
+            if (className.equals("android.os.Build$VERSION")) {
+                for (Object field : classNode.fields) {
+                    FieldNode fieldNode = (FieldNode) field;
+                    fieldNode.access &= ~(Modifier.FINAL);
+                }
+            }
         }
 
         private boolean isSyntheticAccessorMethod(MethodNode method) {

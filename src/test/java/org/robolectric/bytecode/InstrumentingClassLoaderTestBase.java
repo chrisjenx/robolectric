@@ -1,6 +1,32 @@
 package org.robolectric.bytecode;
 
+import android.os.Build;
 import org.junit.Test;
+import org.robolectric.bytecode.testing.AChild;
+import org.robolectric.bytecode.testing.AClassThatCallsAMethodReturningAForgettableClass;
+import org.robolectric.bytecode.testing.AClassThatRefersToAForgettableClass;
+import org.robolectric.bytecode.testing.AClassThatRefersToAForgettableClassInItsConstructor;
+import org.robolectric.bytecode.testing.AClassThatRefersToAForgettableClassInMethodCalls;
+import org.robolectric.bytecode.testing.AClassThatRefersToAForgettableClassInMethodCallsReturningPrimitive;
+import org.robolectric.bytecode.testing.AClassToForget;
+import org.robolectric.bytecode.testing.AClassToRemember;
+import org.robolectric.bytecode.testing.AClassWithEqualsHashCodeToString;
+import org.robolectric.bytecode.testing.AClassWithFunnyConstructors;
+import org.robolectric.bytecode.testing.AClassWithMethodReturningArray;
+import org.robolectric.bytecode.testing.AClassWithMethodReturningBoolean;
+import org.robolectric.bytecode.testing.AClassWithMethodReturningDouble;
+import org.robolectric.bytecode.testing.AClassWithMethodReturningInteger;
+import org.robolectric.bytecode.testing.AClassWithNativeMethod;
+import org.robolectric.bytecode.testing.AClassWithNoDefaultConstructor;
+import org.robolectric.bytecode.testing.AClassWithStaticMethod;
+import org.robolectric.bytecode.testing.AClassWithoutEqualsHashCodeToString;
+import org.robolectric.bytecode.testing.AFinalClass;
+import org.robolectric.bytecode.testing.AnEnum;
+import org.robolectric.bytecode.testing.AnExampleClass;
+import org.robolectric.bytecode.testing.AnInstrumentedChild;
+import org.robolectric.bytecode.testing.AnInstrumentedClassWithoutToStringWithSuperToString;
+import org.robolectric.bytecode.testing.AnUninstrumentedClass;
+import org.robolectric.bytecode.testing.AnUninstrumentedParent;
 import org.robolectric.util.Transcript;
 import org.robolectric.util.Util;
 
@@ -15,6 +41,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import static org.fest.assertions.api.Assertions.assertThat;
+import static org.fest.reflect.core.Reflection.staticField;
 import static org.junit.Assert.*;
 import static org.robolectric.Robolectric.directlyOn;
 
@@ -239,7 +267,7 @@ abstract public class InstrumentingClassLoaderTestBase { // don't end in "Test" 
         Class<?> aClass = loadClass(AClassWithFunnyConstructors.class);
         Object o = aClass.getDeclaredConstructor(String.class).newInstance("hortense");
         transcript.assertEventsSoFar(
-                "methodInvoked: AClassWithFunnyConstructors.__constructor__(org.robolectric.bytecode.AnUninstrumentedParent UninstrumentedParent{parentName='hortense'}, java.lang.String foo)",
+                "methodInvoked: AClassWithFunnyConstructors.__constructor__(" + AnUninstrumentedParent.class.getName() + " UninstrumentedParent{parentName='hortense'}, java.lang.String foo)",
                 "methodInvoked: AClassWithFunnyConstructors.__constructor__(java.lang.String hortense)");
 
         // should not run constructor bodies...
@@ -252,7 +280,7 @@ abstract public class InstrumentingClassLoaderTestBase { // don't end in "Test" 
         Class<?> aClass = loadClass(AClassWithFunnyConstructors.class);
         Object instance = aClass.getConstructor(String.class).newInstance("horace");
         transcript.assertEventsSoFar(
-                "methodInvoked: AClassWithFunnyConstructors.__constructor__(org.robolectric.bytecode.AnUninstrumentedParent UninstrumentedParent{parentName='horace'}, java.lang.String foo)",
+                "methodInvoked: AClassWithFunnyConstructors.__constructor__(" + AnUninstrumentedParent.class.getName() + " UninstrumentedParent{parentName='horace'}, java.lang.String foo)",
                 "methodInvoked: AClassWithFunnyConstructors.__constructor__(java.lang.String horace)");
 
         // each directly-accessible constructor body will need to be called explicitly, with the correct args...
@@ -363,7 +391,7 @@ abstract public class InstrumentingClassLoaderTestBase { // don't end in "Test" 
         setClassLoader(createClassLoader(new MethodInterceptingSetup(new Setup.MethodRef(AClassToForget.class, "forgettableMethod"))));
         Class<?> theClass = loadClass(AClassThatRefersToAForgettableClass.class);
         Object instance = theClass.newInstance();
-        Object output = theClass.getMethod("interactWithForgettableClass").invoke(directlyOn(instance));
+        Object output = theClass.getMethod("interactWithForgettableClass").invoke(directlyOn(instance, (Class<Object>) theClass));
         assertEquals("null, get this!", output);
     }
 
@@ -372,7 +400,7 @@ abstract public class InstrumentingClassLoaderTestBase { // don't end in "Test" 
         setClassLoader(createClassLoader(new MethodInterceptingSetup(new Setup.MethodRef(AClassToForget.class, "forgettableStaticMethod"))));
         Class<?> theClass = loadClass(AClassThatRefersToAForgettableClass.class);
         Object instance = theClass.newInstance();
-        Object output = theClass.getMethod("interactWithForgettableStaticMethod").invoke(directlyOn(instance));
+        Object output = theClass.getMethod("interactWithForgettableStaticMethod").invoke(directlyOn(instance, (Class<Object>) theClass));
         assertEquals("yess? forget this: null", output);
     }
 
@@ -381,8 +409,8 @@ abstract public class InstrumentingClassLoaderTestBase { // don't end in "Test" 
         setClassLoader(createClassLoader(new MethodInterceptingSetup(new Setup.MethodRef(AClassToForget.class, "*"))));
         Class<?> theClass = loadClass(AClassThatRefersToAForgettableClassInMethodCallsReturningPrimitive.class);
         Object instance = theClass.newInstance();
-        assertEquals((byte) 0, theClass.getMethod("byteMethod").invoke(directlyOn(instance)));
-        assertNull(theClass.getMethod("byteArrayMethod").invoke(directlyOn(instance)));
+        assertEquals((byte) 0, theClass.getMethod("byteMethod").invoke(directlyOn(instance, (Class<Object>) theClass)));
+        assertNull(theClass.getMethod("byteArrayMethod").invoke(directlyOn(instance, (Class<Object>) theClass)));
     }
 
     @Test
@@ -390,8 +418,8 @@ abstract public class InstrumentingClassLoaderTestBase { // don't end in "Test" 
         setClassLoader(createClassLoader(new MethodInterceptingSetup(new Setup.MethodRef(AClassToForget.class, "*"))));
         Class<?> theClass = loadClass(AClassThatRefersToAForgettableClassInMethodCallsReturningPrimitive.class);
         Object instance = theClass.newInstance();
-        assertEquals(0, theClass.getMethod("intMethod").invoke(directlyOn(instance)));
-        assertNull(theClass.getMethod("intArrayMethod").invoke(directlyOn(instance)));
+        assertEquals(0, theClass.getMethod("intMethod").invoke(directlyOn(instance, (Class<Object>) theClass)));
+        assertNull(theClass.getMethod("intArrayMethod").invoke(directlyOn(instance, (Class<Object>) theClass)));
     }
 
     @Test
@@ -399,15 +427,15 @@ abstract public class InstrumentingClassLoaderTestBase { // don't end in "Test" 
         setClassLoader(createClassLoader(new MethodInterceptingSetup(new Setup.MethodRef(AClassToForget.class, "*"))));
         Class<?> theClass = loadClass(AClassThatRefersToAForgettableClassInMethodCallsReturningPrimitive.class);
         Object instance = theClass.newInstance();
-        assertEquals(0L, theClass.getMethod("longMethod").invoke(directlyOn(instance)));
-        assertNull(theClass.getMethod("longArrayMethod").invoke(directlyOn(instance)));
+        assertEquals(0L, theClass.getMethod("longMethod").invoke(directlyOn(instance, (Class<Object>) theClass)));
+        assertNull(theClass.getMethod("longArrayMethod").invoke(directlyOn(instance, (Class<Object>) theClass)));
     }
 
     @Test
     public void shouldRemapClassesWhileInterceptingMethods() throws Exception {
         setClassLoader(createClassLoader(new MethodInterceptingClassRemappingSetup(new Setup.MethodRef(AClassThatCallsAMethodReturningAForgettableClass.class, "getAForgettableClass"))));
         Class<?> theClass = loadClass(AClassThatCallsAMethodReturningAForgettableClass.class);
-        theClass.getMethod("callSomeMethod").invoke(directlyOn(theClass.newInstance()));
+        theClass.getMethod("callSomeMethod").invoke(directlyOn(theClass.newInstance(), (Class<Object>) theClass));
     }
 
     @Test
@@ -429,6 +457,12 @@ abstract public class InstrumentingClassLoaderTestBase { // don't end in "Test" 
         assertArrayEquals(new Integer[]{}, Util.reverse(new Integer[]{}));
     }
 
+    @Test public void shouldMakeBuildVersionIntsNonFinal() throws Exception {
+        Class<?> versionClass = loadClass(Build.VERSION.class);
+        int modifiers = staticField("SDK_INT").ofType(int.class).in(versionClass).info().getModifiers();
+        assertThat(Modifier.isFinal(modifiers)).as("SDK_INT should be non-final").isFalse();
+    }
+
     /////////////////////////////
 
     private Object getDeclaredFieldValue(Class<?> aClass, Object o, String fieldName) throws Exception {
@@ -444,10 +478,6 @@ abstract public class InstrumentingClassLoaderTestBase { // don't end in "Test" 
 
         public MyClassHandler(Transcript transcript) {
             this.transcript = transcript;
-        }
-
-        @Override
-        public void reset() {
         }
 
         @Override
@@ -544,7 +574,7 @@ abstract public class InstrumentingClassLoaderTestBase { // don't end in "Test" 
         @Override
         public Map<String, String> classNameTranslations() {
             Map<String, String> map = new HashMap<String, String>();
-            map.put("org.robolectric.bytecode.AClassToForget", "org.robolectric.bytecode.AClassToRemember");
+            map.put(AClassToForget.class.getName(), AClassToRemember.class.getName());
             return map;
         }
 

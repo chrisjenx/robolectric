@@ -16,10 +16,13 @@ import org.junit.runner.RunWith;
 import org.robolectric.R;
 import org.robolectric.Robolectric;
 import org.robolectric.TestRunners;
-import org.robolectric.annotation.Values;
+import org.robolectric.annotation.Config;
 import org.robolectric.res.EmptyResourceLoader;
 import org.robolectric.res.ResourceLoader;
+import org.robolectric.util.TestUtil;
 import org.xmlpull.v1.XmlPullParser;
+
+import java.io.InputStream;
 
 import static org.fest.assertions.api.Assertions.assertThat;
 import static org.junit.Assert.assertSame;
@@ -89,7 +92,7 @@ public class ResourcesTest {
     }
 
     @Test
-    @Values(qualifiers = "fr")
+    @Config(qualifiers = "fr")
     public void testGetValuesResFromSpecifiecQualifiers() {
         String hello = resources.getString(R.string.hello);
         assertThat(hello).isEqualTo("Bonjour");
@@ -213,4 +216,17 @@ public class ResourcesTest {
         resources.getXml(0);
     }
 
+    @Test
+    public void shouldLoadRawResources() throws Exception {
+        InputStream resourceStream = resources.openRawResource(R.raw.raw_resource);
+        assertThat(resourceStream).isNotNull();
+        assertThat(TestUtil.readString(resourceStream)).isEqualTo("raw txt file contents");
+    }
+
+    @Test
+    public void shouldLoadRawResourcesFromLibraries() throws Exception {
+        InputStream resourceStream = resources.openRawResource(R.raw.lib_raw_resource);
+        assertThat(resourceStream).isNotNull();
+        assertThat(TestUtil.readString(resourceStream)).isEqualTo("from lib3");
+    }
 }

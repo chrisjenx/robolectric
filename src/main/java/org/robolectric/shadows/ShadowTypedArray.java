@@ -9,6 +9,10 @@ import org.robolectric.internal.Implements;
 import org.robolectric.res.ResName;
 import org.robolectric.res.ResourceIndex;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
 import static org.robolectric.Robolectric.shadowOf;
 
 @SuppressWarnings({"UnusedDeclaration"})
@@ -17,6 +21,7 @@ public class ShadowTypedArray implements UsesResources {
     private Resources resources;
     private AttributeSet values;
     private int[] attrs;
+    private int[] presentAttrs;
     private ResourceIndex resourceIndex;
 
     public static TypedArray create(Resources resources, AttributeSet set, int[] attrs) {
@@ -28,6 +33,18 @@ public class ShadowTypedArray implements UsesResources {
     public void injectResources(Resources resources) {
         this.resources = resources;
         resourceIndex = shadowOf(resources).getResourceLoader().getResourceIndex();
+    }
+
+    @Implementation
+    synchronized public int getIndexCount() {
+        if (presentAttrs == null) populatePresent();
+        return presentAttrs.length;
+    }
+
+    @Implementation
+    synchronized public int getIndex(int at) {
+        if (presentAttrs == null) populatePresent();
+        return presentAttrs[at];
     }
 
     @Implementation
@@ -80,7 +97,8 @@ public class ShadowTypedArray implements UsesResources {
 
     @Implementation
     public int getResourceId(int index, int defValue) {
-        return defValue;
+        ResName resName = getResName(index);
+        return values.getAttributeResourceValue(resName.namespace, resName.name, defValue);
     }
 
     @Implementation
@@ -107,7 +125,7 @@ public class ShadowTypedArray implements UsesResources {
         return null;
     }
 
-  private ResName getResName(int index) {
+    private ResName getResName(int index) {
         return resourceIndex.getResName(attrs[index]);
     }
 
@@ -115,6 +133,31 @@ public class ShadowTypedArray implements UsesResources {
         if (this.values != null || this.attrs != null) throw new IllegalStateException();
         this.values = set;
         this.attrs = attrs;
+    }
+
+    synchronized private void populatePresent() {
+        Set<Integer> attrsPresent = new HashSet<Integer>();
+        int count = values.getAttributeCount();
+        for (int i = 0; i < count; i++) {
+            attrsPresent.add(values.getAttributeNameResource(i));
+        }
+        attrsPresent.retainAll(Arrays.asList(box(attrs)));
+        this.presentAttrs = new int[attrsPresent.size()];
+        int j = 0;
+        if (attrs == null) return;
+        for (int i = 0; i < attrs.length; i++) {
+            int attr = attrs[i];
+            if (attrsPresent.contains(attr)) {
+                presentAttrs[j++] = i;
+            }
+        }
+    }
+
+    private Integer[] box(int[] ints) {
+        if (ints == null) return new Integer[0];
+        Integer[] integers = new Integer[ints.length];
+        for (int i = 0; i < ints.length; i++) integers[i] = ints[i];
+        return integers;
     }
 
 }

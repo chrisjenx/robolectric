@@ -1,5 +1,9 @@
 package org.robolectric.bytecode;
 
+import android.view.View;
+import org.fest.reflect.core.Reflection;
+import org.fest.reflect.method.Invoker;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -9,7 +13,7 @@ import java.util.Map;
 
 @SuppressWarnings({"UnusedDeclaration"})
 public class RobolectricInternals {
-    // initialized via magic by RobolectricContext
+    // initialized via magic by SdkEnvironment
     private static ClassHandler classHandler;
     private static final Map<Class, Field> shadowFieldMap = new HashMap<Class, Field>();
 
@@ -205,5 +209,10 @@ public class RobolectricInternals {
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static Invoker<Void> getConstructor(Class<?> clazz, View realView, Class... parameterTypes) {
+        String name = directMethodName(clazz.getName(), InstrumentingClassLoader.CONSTRUCTOR_METHOD_NAME);
+        return Reflection.method(name).withParameterTypes(parameterTypes).in(realView);
     }
 }

@@ -16,6 +16,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.annotation.Config;
 import org.robolectric.internal.Implementation;
 import org.robolectric.internal.Implements;
 import org.robolectric.shadows.ShadowDisplay;
@@ -26,7 +27,9 @@ import java.io.IOException;
 import java.io.PrintStream;
 
 import static org.fest.assertions.api.Assertions.assertThat;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.robolectric.Robolectric.shadowOf;
 
 @RunWith(TestRunners.WithDefaults.class)
@@ -55,11 +58,11 @@ public class RobolectricTest {
 
     @Test
     @Ignore // When this test is run via ant (not Intellj and not Maven) we get a bunch of "No Shadow method found for Typeface.finalize()" in the log along with the message for getContext()
+    @Config(shadows = TestShadowView.class)
     public void shouldLogMissingInvokedShadowMethodsWhenRequested() throws Exception {
-        Robolectric.bindShadowClass(TestShadowView.class);
         Robolectric.logMissingInvokedShadowMethods();
 
-        View aView = new View(null);
+        View aView = new View(Robolectric.application);
         // There's a shadow method for this in ShadowView but not TestShadowView
         aView.getContext();
         String output = buff.toString();
@@ -75,7 +78,7 @@ public class RobolectricTest {
     @Test // This is nasty because it depends on the test above having run first in order to fail
     @Ignore // we aren't running that test right now...
     public void shouldNotLogMissingInvokedShadowMethodsByDefault() throws Exception {
-        View aView = new View(null);
+        View aView = new View(Robolectric.application);
         aView.findViewById(27);
         String output = buff.toString();
 
@@ -84,7 +87,7 @@ public class RobolectricTest {
 
     @Test(expected = RuntimeException.class)
     public void clickOn_shouldThrowIfViewIsDisabled() throws Exception {
-        View view = new View(null);
+        View view = new View(Robolectric.application);
         view.setEnabled(false);
         Robolectric.clickOn(view);
     }
@@ -166,7 +169,7 @@ public class RobolectricTest {
 
     @Test
     public void clickOn_shouldCallClickListener() throws Exception {
-        View view = new View(null);
+        View view = new View(Robolectric.application);
         TestOnClickListener testOnClickListener = new TestOnClickListener();
         view.setOnClickListener(testOnClickListener);
         Robolectric.clickOn(view);
