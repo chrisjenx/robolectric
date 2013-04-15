@@ -2,14 +2,12 @@ package org.robolectric;
 
 import android.app.Application;
 import android.content.res.Resources;
-import android.widget.TextView;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.model.InitializationError;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.DisableStrictI18n;
 import org.robolectric.annotation.EnableStrictI18n;
-import org.robolectric.internal.TestLifecycle;
 
 import java.lang.reflect.Method;
 
@@ -23,7 +21,7 @@ public class RobolectricTestRunnerSelfTest {
     public void shouldInitializeAndBindApplicationButNotCallOnCreate() throws Exception {
         assertNotNull(Robolectric.application);
         assertEquals(MyTestApplication.class, Robolectric.application.getClass());
-        assertFalse(((MyTestApplication) Robolectric.application).onCreateWasCalled);
+        assertTrue(((MyTestApplication) Robolectric.application).onCreateWasCalled);
         assertNotNull(shadowOf(Robolectric.application).getResourceLoader());
     }
 
@@ -73,19 +71,6 @@ public class RobolectricTestRunnerSelfTest {
     @Test
     public void internalBeforeTest_doesNotSetI18nStrictModeFromSystemIfPropertyAbsent() {
         assertFalse(Robolectric.getShadowApplication().isStrictI18n());
-    }
-
-    @Test
-    @EnableStrictI18n
-    public void methodBlock_setsI18nStrictModeForClassHandler() {
-        TextView tv = new TextView(Robolectric.application);
-        try {
-            tv.setText("Foo");
-            fail("TextView#setText(String) should produce an i18nException");
-        } catch (Exception e) {
-            // Compare exception name because it was loaded in the instrumented classloader
-            assertEquals("org.robolectric.util.I18nException", e.getClass().getName());
-        }
     }
 
     public static class RunnerForTesting extends TestRunners.WithDefaults {

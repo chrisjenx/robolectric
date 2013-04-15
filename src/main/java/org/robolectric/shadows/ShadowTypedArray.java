@@ -1,7 +1,10 @@
 package org.robolectric.shadows;
 
+import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import org.robolectric.Robolectric;
 import org.robolectric.internal.Implementation;
@@ -55,6 +58,7 @@ public class ShadowTypedArray implements UsesResources {
     @Implementation
     public CharSequence getText(int index) {
         ResName resName = getResName(index);
+        if (resName == null) return null;
         CharSequence str = values.getAttributeValue(resName.namespace, resName.name);
         return str == null ? "" : str;
     }
@@ -62,6 +66,7 @@ public class ShadowTypedArray implements UsesResources {
     @Implementation
     public String getString(int index) {
         ResName resName = getResName(index);
+        if (resName == null) return null;
         String str = values.getAttributeValue(resName.namespace, resName.name);
         return str == null ? "" : str;
     }
@@ -69,24 +74,61 @@ public class ShadowTypedArray implements UsesResources {
     @Implementation
     public boolean getBoolean(int index, boolean defValue) {
         ResName resName = getResName(index);
+        if (resName == null) return defValue;
         return values.getAttributeBooleanValue(resName.namespace, resName.name, defValue);
     }
 
     @Implementation
     public int getInt(int index, int defValue) {
         ResName resName = getResName(index);
+        if (resName == null) return defValue;
         return values.getAttributeIntValue(resName.namespace, resName.name, defValue);
     }
 
     @Implementation
     public float getFloat(int index, float defValue) {
         ResName resName = getResName(index);
+        if (resName == null) return defValue;
         return values.getAttributeFloatValue(resName.namespace, resName.name, defValue);
+    }
+
+    @Implementation
+    public int getColor(int index, int defValue) {
+        ResName resName = getResName(index);
+        if (resName == null) return defValue;
+        String value = values.getAttributeValue(resName.namespace, resName.name);
+        if (isEmpty(value)) return defValue;
+        if (isReference(value)) {
+            int attributeResourceValue = values.getAttributeResourceValue(resName.namespace, resName.name, -1);
+            if (attributeResourceValue != -1) {
+                return resources.getColor(attributeResourceValue);
+            } else {
+                return defValue;
+            }
+        } else {
+            return Color.parseColor(value);
+        }
+    }
+
+    @Implementation
+    public ColorStateList getColorStateList(int index) {
+        ResName resName = getResName(index);
+        if (resName == null) return null;
+        String value = values.getAttributeValue(resName.namespace, resName.name);
+        if (isEmpty(value)) return null;
+        if (isReference(value)) {
+            int attributeResourceValue = values.getAttributeResourceValue(resName.namespace, resName.name, -1);
+            if (attributeResourceValue != -1) {
+                return resources.getColorStateList(attributeResourceValue);
+            }
+        }
+        return null;
     }
 
     @Implementation
     public int getInteger(int index, int defValue) {
         ResName resName = getResName(index);
+        if (resName == null) return defValue;
         return values.getAttributeIntValue(resName.namespace, resName.name, defValue);
     }
 
@@ -96,14 +138,34 @@ public class ShadowTypedArray implements UsesResources {
     }
 
     @Implementation
+    public int getDimensionPixelOffset(int index, int defValue) {
+        return defValue;
+    }
+
+    @Implementation
+    public int getDimensionPixelSize(int index, int defValue) {
+        return defValue;
+    }
+
+    @Implementation
     public int getResourceId(int index, int defValue) {
         ResName resName = getResName(index);
+        if (resName == null) return defValue;
         return values.getAttributeResourceValue(resName.namespace, resName.name, defValue);
+    }
+
+    @Implementation
+    public Drawable getDrawable(int index) {
+        ResName resName = getResName(index);
+        if (resName == null) return null;
+        int drawableId = values.getAttributeResourceValue(resName.namespace, resName.name, -1);
+        return drawableId == -1 ? null : resources.getDrawable(drawableId);
     }
 
     @Implementation
     public java.lang.CharSequence[] getTextArray(int index) {
         ResName resName = getResName(index);
+        if (resName == null) return null;
         int resourceId = values.getAttributeResourceValue(resName.namespace, resName.name, -1);
         return resourceId == -1 ? null : resources.getTextArray(resourceId);
     }
@@ -111,6 +173,10 @@ public class ShadowTypedArray implements UsesResources {
     @Implementation
     public boolean getValue(int index, android.util.TypedValue outValue) {
         return false;
+    }
+
+    @Implementation
+    public void recycle() {
     }
 
     @Implementation
@@ -160,4 +226,11 @@ public class ShadowTypedArray implements UsesResources {
         return integers;
     }
 
+    private boolean isEmpty(String value) {
+        return value == null || value.length() == 0;
+    }
+
+    private boolean isReference(String value) {
+        return value.startsWith("@");
+    }
 }

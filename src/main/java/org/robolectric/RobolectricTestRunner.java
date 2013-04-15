@@ -3,8 +3,6 @@ package org.robolectric;
 import android.app.Application;
 import android.os.Build;
 import org.apache.maven.artifact.ant.DependenciesTask;
-import org.apache.maven.model.Dependency;
-import org.apache.tools.ant.Project;
 import org.jetbrains.annotations.TestOnly;
 import org.junit.runner.notification.RunNotifier;
 import org.junit.runners.BlockJUnit4ClassRunner;
@@ -28,7 +26,6 @@ import org.robolectric.bytecode.ShadowWrangler;
 import org.robolectric.bytecode.ZipClassCache;
 import org.robolectric.internal.ParallelUniverse;
 import org.robolectric.internal.ParallelUniverseInterface;
-import org.robolectric.internal.TestLifecycle;
 import org.robolectric.res.OverlayResourceLoader;
 import org.robolectric.res.PackageResourceLoader;
 import org.robolectric.res.ResourceLoader;
@@ -45,14 +42,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.annotation.Annotation;
-import java.lang.ref.SoftReference;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.net.MalformedURLException;
 import java.net.URL;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
@@ -64,15 +59,24 @@ import static org.fest.reflect.core.Reflection.staticField;
  * provide a simulation of the Android runtime environment.
  */
 public class RobolectricTestRunner extends BlockJUnit4ClassRunner {
+    private static final MavenCentral MAVEN_CENTRAL = new MavenCentral();
+
     private static final Map<Class<? extends RobolectricTestRunner>, EnvHolder> envHoldersByTestRunner = new HashMap<Class<? extends RobolectricTestRunner>, EnvHolder>();
     private static final Map<AndroidManifest, ResourceLoader> resourceLoadersByAppManifest = new HashMap<AndroidManifest, ResourceLoader>();
-    private static final Map<ResourcePath, ResourceLoader> systemResourceLoaders = new HashMap<ResourcePath, ResourceLoader>();
+
+    private static Class<? extends RobolectricTestRunner> lastTestRunnerClass;
+    private static SdkConfig lastSdkConfig;
+    private static SdkEnvironment lastSdkEnvironment;
 
     private static ShadowMap mainShadowMap;
 
     private final EnvHolder envHolder;
     private DatabaseMap databaseMap;
     private TestLifecycle<Application> testLifecycle;
+
+    static {
+        new SecureRandom(); // this starts up the Poller SunPKCS11-Darwin thread early, outside of any Robolectric classloader
+    }
 
     /**
      * Creates a runner to run {@code testClass}. Looks in your working directory for your AndroidManifest.xml file
@@ -111,10 +115,10 @@ public class RobolectricTestRunner extends BlockJUnit4ClassRunner {
         }
     }
 
-    public SdkEnvironment createSdkEnvironment(AndroidManifest appManifest, Config config, SdkConfig sdkConfig) {
+    public SdkEnvironment createSdkEnvironment(SdkConfig sdkConfig) {
         Setup setup = createSetup();
         ClassLoader robolectricClassLoader = createRobolectricClassLoader(setup, sdkConfig);
-        return new SdkEnvironment(appManifest, robolectricClassLoader);
+        return new SdkEnvironment(sdkConfig, robolectricClassLoader);
     }
 
     protected ClassHandler createClassHandler(ShadowMap shadowMap) {
@@ -134,11 +138,7 @@ public class RobolectricTestRunner extends BlockJUnit4ClassRunner {
     }
 
     protected ClassLoader createRobolectricClassLoader(Setup setup, SdkConfig sdkConfig) {
-        URL[] urls = artifactUrls(realAndroidDependency("android-base", sdkConfig),
-                realAndroidDependency("android-kxml2", sdkConfig),
-                realAndroidDependency("android-luni", sdkConfig),
-                createDependency("org.json", "json", "20080701", "jar", null)
-        );
+        URL[] urls = MAVEN_CENTRAL.getLocalArtifactUrls(this, sdkConfig.getSdkClasspathDependencies()).values().toArray(new URL[0]);
         ClassLoader robolectricClassLoader;
         if (useAsm()) {
             robolectricClassLoader = new AsmInstrumentingClassLoader(setup, urls);
@@ -171,7 +171,7 @@ public class RobolectricTestRunner extends BlockJUnit4ClassRunner {
         return true;
     }
 
-    private void injectClassHandler(ClassLoader robolectricClassLoader, ClassHandler classHandler) {
+    public static void injectClassHandler(ClassLoader robolectricClassLoader, ClassHandler classHandler) {
         try {
             String className = RobolectricInternals.class.getName();
             Class<?> robolectricInternalsClass = robolectricClassLoader.loadClass(className);
@@ -187,48 +187,9 @@ public class RobolectricTestRunner extends BlockJUnit4ClassRunner {
         }
     }
 
-    private URL[] artifactUrls(Dependency... dependencies) {
-        DependenciesTask dependenciesTask = new DependenciesTask();
-        configureMaven(dependenciesTask);
-        Project project = new Project();
-        dependenciesTask.setProject(project);
-        for (Dependency dependency : dependencies) {
-            dependenciesTask.addDependency(dependency);
-        }
-        dependenciesTask.execute();
-
-        @SuppressWarnings("unchecked")
-        Hashtable<String, String> artifacts = project.getProperties();
-        URL[] urls = new URL[artifacts.size()];
-        int i = 0;
-        for (String path : artifacts.values()) {
-            try {
-                urls[i++] = new URL("file://" + path);
-            } catch (MalformedURLException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        return urls;
-    }
-
     @SuppressWarnings("UnusedParameters")
     protected void configureMaven(DependenciesTask dependenciesTask) {
         // maybe you want to override this method and some settings?
-    }
-
-    private Dependency realAndroidDependency(String artifactId, SdkConfig sdkConfig) {
-        return createDependency("org.robolectric", artifactId, sdkConfig.getArtifactVersionString(), "jar", "real");
-    }
-
-    private Dependency createDependency(String groupId, String artifactId, String version, String type, String classifier) {
-        Dependency dependency = new Dependency();
-        dependency.setGroupId(groupId);
-        dependency.setArtifactId(artifactId);
-        dependency.setVersion(version);
-        dependency.setType(type);
-        dependency.setClassifier(classifier);
-        return dependency;
     }
 
     @Override
@@ -275,27 +236,21 @@ public class RobolectricTestRunner extends BlockJUnit4ClassRunner {
                 configureShadows(sdkEnvironment, config);
                 setupLogging();
 
+                ParallelUniverseInterface parallelUniverseInterface = getHooksInterface(sdkEnvironment);
                 try {
                     assureTestLifecycle(sdkEnvironment);
 
-                    ParallelUniverseInterface parallelUniverseInterface = getHooksInterface(sdkEnvironment);
                     parallelUniverseInterface.resetStaticState();
                     parallelUniverseInterface.setDatabaseMap(databaseMap); //Set static DatabaseMap in DBConfig
 
                     boolean strictI18n = RobolectricTestRunner.determineI18nStrictState(bootstrappedMethod);
                     
-                    ClassHandler classHandler = sdkEnvironment.getCurrentClassHandler();
-                    classHandler.setStrictI18n(strictI18n);
-
-                    int sdkVersion = pickReportedSdkVersion(config, sdkEnvironment);
+                    int sdkVersion = pickReportedSdkVersion(config, appManifest);
                     Class<?> versionClass = sdkEnvironment.bootstrappedClass(Build.VERSION.class);
                     staticField("SDK_INT").ofType(int.class).in(versionClass).set(sdkVersion);
 
-                    ResourcePath systemResourcePath = sdkEnvironment.getSystemResourcePath();
-                    ResourceLoader systemResourceLoader = getSystemResourceLoader(systemResourcePath);
-                    if (appManifest != null) {
-                        setupApplicationState(bootstrappedMethod, parallelUniverseInterface, strictI18n, systemResourceLoader, sdkEnvironment);
-                    }
+                    ResourceLoader systemResourceLoader = sdkEnvironment.getSystemResourceLoader(MAVEN_CENTRAL, RobolectricTestRunner.this);
+                    setUpApplicationState(bootstrappedMethod, parallelUniverseInterface, strictI18n, systemResourceLoader, appManifest);
                     testLifecycle.beforeTest(bootstrappedMethod);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -318,27 +273,40 @@ public class RobolectricTestRunner extends BlockJUnit4ClassRunner {
                         }
                     }
                 } finally {
-                    internalAfterTest(bootstrappedMethod);
+                    try {
+                        parallelUniverseInterface.tearDownApplication();
+                    } finally {
+                        try {
+                            internalAfterTest(bootstrappedMethod);
+                        } finally {
+                            parallelUniverseInterface.resetStaticState(); // afterward too, so stuff doesn't hold on to classes?
+                            // todo: is this really needed?
+                            Thread.currentThread().setContextClassLoader(RobolectricTestRunner.class.getClassLoader());
+                        }
+                    }
                 }
             }
         };
     }
 
-    private SdkEnvironment getEnvironment(AndroidManifest appManifest, Config config) {
-        SdkConfig sdkVersion = pickSdkVersion(appManifest, config);
-        synchronized (envHolder) {
-            SoftReference<SdkEnvironment> reference = envHolder.sdkToEnvironment.get(sdkVersion);
-            SdkEnvironment sdkEnvironment = reference == null ? null : reference.get();
-            if (sdkEnvironment == null) {
-                if (reference != null) {
-                    System.out.println("DEBUG: ********************* GC'ed SdkEnvironment reused!");
-                }
+    private SdkEnvironment getEnvironment(final AndroidManifest appManifest, final Config config) {
+        final SdkConfig sdkConfig = pickSdkVersion(appManifest, config);
 
-                sdkEnvironment = createSdkEnvironment(appManifest, config, sdkVersion);
-                envHolder.sdkToEnvironment.put(sdkVersion, new SoftReference<SdkEnvironment>(sdkEnvironment));
-            }
-            return sdkEnvironment;
+        // keep the most recently-used SdkEnvironment strongly reachable to prevent thrashing in low-memory situations.
+        if (getClass().equals(lastTestRunnerClass) && sdkConfig.equals(sdkConfig)) {
+            return lastSdkEnvironment;
         }
+
+        lastTestRunnerClass = null;
+        lastSdkConfig = null;
+        lastSdkEnvironment = envHolder.getSdkEnvironment(sdkConfig, new SdkEnvironment.Factory() {
+            @Override public SdkEnvironment create() {
+                return createSdkEnvironment(sdkConfig);
+            }
+        });
+        lastTestRunnerClass = getClass();
+        lastSdkConfig = sdkConfig;
+        return lastSdkEnvironment;
     }
 
     protected SdkConfig pickSdkVersion(AndroidManifest appManifest, Config config) {
@@ -410,12 +378,11 @@ public class RobolectricTestRunner extends BlockJUnit4ClassRunner {
         return classHandler;
     }
 
-    protected void setupApplicationState(Method method, ParallelUniverseInterface parallelUniverseInterface, boolean strictI18n, ResourceLoader systemResourceLoader, SdkEnvironment sdkEnvironment) {
-        parallelUniverseInterface.setupApplicationState(method, testLifecycle, sdkEnvironment, strictI18n, systemResourceLoader);
+    protected void setUpApplicationState(Method method, ParallelUniverseInterface parallelUniverseInterface, boolean strictI18n, ResourceLoader systemResourceLoader, AndroidManifest appManifest) {
+        parallelUniverseInterface.setUpApplicationState(method, testLifecycle, strictI18n, systemResourceLoader, appManifest);
     }
 
-    private int getTargetSdkVersion(SdkEnvironment sdkEnvironment) {
-        AndroidManifest appManifest = sdkEnvironment.getAppManifest();
+    private int getTargetSdkVersion(AndroidManifest appManifest) {
         return getTargetVersionWhenAppManifestMightBeNullWhaaa(appManifest);
     }
 
@@ -425,11 +392,11 @@ public class RobolectricTestRunner extends BlockJUnit4ClassRunner {
                 : appManifest.getTargetSdkVersion();
     }
 
-    protected int pickReportedSdkVersion(Config config, SdkEnvironment sdkEnvironment) {
+    protected int pickReportedSdkVersion(Config config, AndroidManifest appManifest) {
         if (config != null && config.reportSdk() != -1) {
             return config.reportSdk();
         } else {
-            return getTargetSdkVersion(sdkEnvironment);
+            return getTargetSdkVersion(appManifest);
         }
     }
 
@@ -599,15 +566,6 @@ public class RobolectricTestRunner extends BlockJUnit4ClassRunner {
         }
     }
 
-    public static ResourceLoader getSystemResourceLoader(ResourcePath systemResourcePath) {
-        ResourceLoader systemResourceLoader = systemResourceLoaders.get(systemResourcePath);
-        if (systemResourceLoader == null) {
-            systemResourceLoader = createResourceLoader(systemResourcePath);
-            systemResourceLoaders.put(systemResourcePath, systemResourceLoader);
-        }
-        return systemResourceLoader;
-    }
-
     public static ResourceLoader getAppResourceLoader(ResourceLoader systemResourceLoader, final AndroidManifest appManifest) {
         ResourceLoader resourceLoader = resourceLoadersByAppManifest.get(appManifest);
         if (resourceLoader == null) {
@@ -621,7 +579,7 @@ public class RobolectricTestRunner extends BlockJUnit4ClassRunner {
     protected static ResourceLoader createAppResourceLoader(ResourceLoader systemResourceLoader, AndroidManifest appManifest) {
         List<PackageResourceLoader> appAndLibraryResourceLoaders = new ArrayList<PackageResourceLoader>();
         for (ResourcePath resourcePath : appManifest.getIncludedResourcePaths()) {
-            appAndLibraryResourceLoaders.add(new PackageResourceLoader(resourcePath));
+            appAndLibraryResourceLoaders.add(createResourceLoader(resourcePath));
         }
         OverlayResourceLoader overlayResourceLoader = new OverlayResourceLoader(appManifest.getPackageName(), appAndLibraryResourceLoaders);
 
@@ -659,8 +617,11 @@ public class RobolectricTestRunner extends BlockJUnit4ClassRunner {
             if (mainShadowMap != null) return mainShadowMap;
 
             mainShadowMap = new ShadowMap.Builder()
-                    .addShadowClasses(RobolectricBase.DEFAULT_SHADOW_CLASSES)
+                    //.addShadowClasses(RobolectricBase.DEFAULT_SHADOW_CLASSES)
                     .build();
+            //mainShadowMap = new ShadowMap.Builder()
+            //        .addShadowClasses(RobolectricBase.DEFAULT_SHADOW_CLASSES)
+            //        .build();
             return mainShadowMap;
         }
     }

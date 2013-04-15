@@ -3,7 +3,6 @@ package org.robolectric.bytecode;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.Robolectric;
 import org.robolectric.TestRunners;
 import org.robolectric.annotation.Config;
 import org.robolectric.bytecode.testing.Foo;
@@ -12,7 +11,6 @@ import org.robolectric.internal.Implementation;
 import org.robolectric.internal.Implements;
 import org.robolectric.internal.Instrument;
 import org.robolectric.internal.RealObject;
-import org.robolectric.util.I18nException;
 
 import java.io.IOException;
 
@@ -30,10 +28,11 @@ public class ShadowWranglerTest {
     }
 
     @Test
-    @Config(shadows = {ShadowWranglerTest.ShadowFoo_WithDefaultConstructorAndNoConstructorDelegate.class})
+    @Config(shadows = {ShadowForAClassWithDefaultConstructor_HavingNoConstructorDelegate.class})
     public void testConstructorInvocation_WithDefaultConstructorAndNoConstructorDelegateOnShadowClass() throws Exception {
-        Foo foo = new Foo(name);
-        assertEquals(ShadowFoo_WithDefaultConstructorAndNoConstructorDelegate.class, shadowOf_(foo).getClass());
+        AClassWithDefaultConstructor instance = new AClassWithDefaultConstructor();
+        assertThat(shadowOf_(instance)).isExactlyInstanceOf(ShadowForAClassWithDefaultConstructor_HavingNoConstructorDelegate.class);
+        assertThat(instance.initialized).isTrue();
     }
 
     @Test
@@ -124,7 +123,6 @@ public class ShadowWranglerTest {
         assertNotNull(e);
         assertEquals(IOException.class, e.getClass());
         assertEquals("fake exception", e.getMessage());
-//        e.printStackTrace(System.out);
         StackTraceElement[] stackTrace = e.getStackTrace();
 
         assertThat(stackTrace[0].getClassName()).isEqualTo(ShadowThrowInShadowMethod.class.getName());
@@ -154,24 +152,97 @@ public class ShadowWranglerTest {
     }
 
 
-    @Test(expected = I18nException.class)
-    @Config(shadows = ShadowWranglerTest.ShadowFooI18n.class)
-    public void shouldThrowExceptionOnI18nStrictMode() {
-        Robolectric.getShadowWrangler().setStrictI18n(true);
-        Foo foo = new Foo(null);
-        foo.getName();
+    @Test
+    @Config(shadows = ShadowThrowInRealMethod.class)
+    public void shouldRemoveNoiseFromUnshadowedStackTraces() throws Exception {
+        ThrowInRealMethod instance = new ThrowInRealMethod();
+
+        Exception e = null;
+        try {
+            instance.method();
+        } catch (Exception e1) {
+            e = e1;
+        }
+
+        assertNotNull(e);
+        assertEquals(IOException.class, e.getClass());
+        assertEquals("fake exception", e.getMessage());
+        StackTraceElement[] stackTrace = e.getStackTrace();
+
+        assertThat(stackTrace[0].getClassName()).isEqualTo(ThrowInRealMethod.class.getName());
+        assertThat(stackTrace[0].getMethodName()).isEqualTo("method");
+        assertThat(stackTrace[0].getLineNumber()).isGreaterThan(0);
+
+        assertThat(stackTrace[1].getClassName()).isEqualTo(ShadowWranglerTest.class.getName());
+        assertThat(stackTrace[1].getMethodName()).isEqualTo("shouldRemoveNoiseFromUnshadowedStackTraces");
+        assertThat(stackTrace[1].getLineNumber()).isGreaterThan(0);
+    }
+
+    @Instrument
+    public static class ThrowInRealMethod {
+        public void method() throws IOException {
+            throw new IOException("fake exception");
+        }
+    }
+
+    @Implements(value = ThrowInRealMethod.class, callThroughByDefault = true)
+    public static class ShadowThrowInRealMethod {
+    }
+    
+    @Test @Config(shadows = {ShadowOfChildWithInheritance.class, ShadowOfParent.class})
+    public void whenInheritanceIsEnabled_shouldUseShadowSuperclassMethods() throws Exception {
+        assertThat(new Child().get()).isEqualTo("from shadow of parent");
+    }
+
+    @Test @Config(shadows = {ShadowOfChildWithoutInheritance.class, ShadowOfParent.class})
+    public void whenInheritanceIsDisabled_shouldUseShadowSuperclassMethods() throws Exception {
+        assertThat(new Child().get()).isEqualTo("from child (from shadow of parent)");
+    }
+
+    @Instrument
+    public static class Parent {
+        public String get() {
+            return "from parent";
+        }
+    }
+
+    @Instrument
+    public static class Child extends Parent {
+        public String get() {
+            return "from child (" + super.get() + ")";
+        }
+    }
+
+    @Implements(Parent.class)
+    public static class ShadowOfParent {
+        @Implementation
+        public String get() {
+            return "from shadow of parent";
+        }
+    }
+
+    @Implements(value = Child.class, inheritImplementationMethods = true)
+    public static class ShadowOfChildWithInheritance extends ShadowOfParent {
+    }
+
+    @Implements(value = Child.class, inheritImplementationMethods = false)
+    public static class ShadowOfChildWithoutInheritance extends ShadowOfParent {
     }
 
     private ShadowFoo shadowOf(Foo foo) {
-        return (ShadowFoo) shadowOf_(foo);
+        return shadowOf_(foo);
     }
 
     private ShadowTextFoo shadowOf(TextFoo foo) {
-        return (ShadowTextFoo) shadowOf_(foo);
+        return shadowOf_(foo);
     }
 
     @Implements(Foo.class)
     public static class WithEquals {
+        @SuppressWarnings("UnusedDeclaration")
+        public void __constructor__(String s) {
+        }
+
         @Override
         public boolean equals(Object o) {
             return true;
@@ -187,6 +258,10 @@ public class ShadowWranglerTest {
 
     @Implements(Foo.class)
     public static class WithToString {
+        @SuppressWarnings("UnusedDeclaration")
+        public void __constructor__(String s) {
+        }
+
         @Override
         public String toString() {
             return "the expected string";
@@ -208,20 +283,6 @@ public class ShadowWranglerTest {
     }
 
     @Implements(Foo.class)
-    public static class ShadowFooI18n {
-        String name;
-
-        public void __constructor__(String name) {
-            this.name = name;
-        }
-
-        @Implementation(i18nSafe = false)
-        public String getName() {
-            return name;
-        }
-    }
-
-    @Implements(Foo.class)
     public static class ShadowFooParent {
         @RealObject
         private Foo realFoo;
@@ -232,7 +293,16 @@ public class ShadowWranglerTest {
         }
     }
 
-    @Implements(Foo.class)
-    public static class ShadowFoo_WithDefaultConstructorAndNoConstructorDelegate {
+    @Instrument
+    public static class AClassWithDefaultConstructor {
+        public boolean initialized;
+
+        public AClassWithDefaultConstructor() {
+            initialized = true;
+        }
+    }
+
+    @Implements(AClassWithDefaultConstructor.class)
+    public static class ShadowForAClassWithDefaultConstructor_HavingNoConstructorDelegate {
     }
 }

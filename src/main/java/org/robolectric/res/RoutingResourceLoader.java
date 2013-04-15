@@ -28,7 +28,7 @@ public class RoutingResourceLoader implements ResourceLoader {
     }
 
     @Override
-    public int getColorValue(ResName resName, String qualifiers) {
+    public String getColorValue(ResName resName, String qualifiers) {
         return pickFor(resName).getColorValue(resName, qualifiers);
     }
 
@@ -43,7 +43,7 @@ public class RoutingResourceLoader implements ResourceLoader {
     }
 
     @Override
-    public float getDimenValue(ResName resName, String qualifiers) {
+    public String getDimenValue(ResName resName, String qualifiers) {
         return pickFor(resName).getDimenValue(resName, qualifiers);
     }
 
@@ -123,6 +123,9 @@ public class RoutingResourceLoader implements ResourceLoader {
     }
 
     private ResourceLoader pickFor(String namespace) {
+        if (namespace.equals("android.internal")) {
+            return new NullResourceLoader();
+        }
         ResourceLoader resourceLoader = resourceLoaders.get(namespace);
         if (resourceLoader == null) {
             throw new RuntimeException("no ResourceLoader found for " + namespace);
@@ -135,8 +138,7 @@ public class RoutingResourceLoader implements ResourceLoader {
             super(null);
         }
 
-        @Override
-        void doInitialize() {
+        @Override void doInitialize() {
         }
 
         @Override

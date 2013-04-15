@@ -15,7 +15,7 @@ import org.robolectric.internal.Implements;
 import org.robolectric.internal.Instrument;
 import org.robolectric.internal.ParallelUniverseInterface;
 import org.robolectric.internal.RealObject;
-import org.robolectric.internal.TestLifecycle;
+import org.robolectric.TestLifecycle;
 import org.robolectric.res.ResourceLoader;
 import org.robolectric.res.ResourcePath;
 import org.robolectric.util.DatabaseConfig;
@@ -40,7 +40,6 @@ public class Setup {
             TestLifecycle.class,
             RealObject.class,
             ShadowWrangler.class,
-            Vars.class,
             AndroidManifest.class,
             DatabaseConfig.DatabaseMap.class,
             R.class,
@@ -55,6 +54,7 @@ public class Setup {
             ResourceLoader.class,
             AndroidTranslator.class,
             ClassHandler.class,
+            ClassHandler.Plan.class,
             Implements.class,
             Implementation.class,
             Instrument.class,
@@ -86,10 +86,7 @@ public class Setup {
             return false;
         }
 
-        if (isFromAndroidSdk(classInfo)) {
-            return true;
-        }
-
+        if (isFromAndroidSdk(classInfo)) return true;
         return false;
     }
 
@@ -145,7 +142,9 @@ public class Setup {
                 new MethodRef("android.os.StrictMode", "trackActivity"),
                 new MethodRef("com.android.i18n.phonenumbers.Phonenumber$PhoneNumber", "*"),
                 new MethodRef("com.android.i18n.phonenumbers.PhoneNumberUtil", "*"),
-                new MethodRef("dalvik.system.CloseGuard", "get")
+                new MethodRef("dalvik.system.CloseGuard", "get"),
+                new MethodRef("java.lang.AutoCloseable", "*"),
+                new MethodRef("android.util.LocaleUtil", "getLayoutDirectionFromLocale")
         )));
     }
 
@@ -161,6 +160,7 @@ public class Setup {
         map.put("com.android.i18n.phonenumbers.PhoneNumberUtil$PhoneNumberFormat", FakeClass.FakeInnerClass.class.getName());
         map.put("com.android.i18n.phonenumbers.Phonenumber$PhoneNumber", FakeClass.class.getName());
         map.put("dalvik.system.CloseGuard", Object.class.getName());
+        map.put("java.lang.AutoCloseable", Object.class.getName());
         return map;
     }
 
