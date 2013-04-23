@@ -96,7 +96,6 @@ import android.preference.PreferenceCategory;
 import android.preference.PreferenceGroup;
 import android.preference.PreferenceScreen;
 import android.support.v4.content.CursorLoader;
-import android.telephony.PhoneNumberUtils;
 import android.telephony.SmsManager;
 import android.telephony.TelephonyManager;
 import android.text.ClipboardManager;
@@ -134,6 +133,7 @@ import android.webkit.JsResult;
 import android.webkit.MimeTypeMap;
 import android.webkit.SslErrorHandler;
 import android.webkit.WebView;
+import android.webkit.WebViewDatabase;
 import android.widget.AbsListView;
 import android.widget.AbsSeekBar;
 import android.widget.AdapterView;
@@ -285,7 +285,6 @@ import org.robolectric.shadows.ShadowParcel;
 import org.robolectric.shadows.ShadowPasswordTransformationMethod;
 import org.robolectric.shadows.ShadowPath;
 import org.robolectric.shadows.ShadowPendingIntent;
-import org.robolectric.shadows.ShadowPhoneNumberUtils;
 import org.robolectric.shadows.ShadowPopupWindow;
 import org.robolectric.shadows.ShadowPowerManager;
 import org.robolectric.shadows.ShadowPreference;
@@ -317,9 +316,6 @@ import org.robolectric.shadows.ShadowService;
 import org.robolectric.shadows.ShadowShapeDrawable;
 import org.robolectric.shadows.ShadowSimpleCursorAdapter;
 import org.robolectric.shadows.ShadowSmsManager;
-import org.robolectric.shadows.ShadowSparseArray;
-import org.robolectric.shadows.ShadowSparseBooleanArray;
-import org.robolectric.shadows.ShadowSparseIntArray;
 import org.robolectric.shadows.ShadowSslErrorHandler;
 import org.robolectric.shadows.ShadowStatFs;
 import org.robolectric.shadows.ShadowStateListDrawable;
@@ -341,6 +337,7 @@ import org.robolectric.shadows.ShadowViewFlipper;
 import org.robolectric.shadows.ShadowViewGroup;
 import org.robolectric.shadows.ShadowViewTreeObserver;
 import org.robolectric.shadows.ShadowWebView;
+import org.robolectric.shadows.ShadowWebViewDatabase;
 import org.robolectric.shadows.ShadowWifiConfiguration;
 import org.robolectric.shadows.ShadowWifiInfo;
 import org.robolectric.shadows.ShadowWifiManager;
@@ -843,10 +840,6 @@ public class Robolectric {
         return (ShadowPendingIntent) shadowOf_(instance);
     }
 
-    public static ShadowPhoneNumberUtils shadowOf(PhoneNumberUtils instance) {
-        return (ShadowPhoneNumberUtils) shadowOf_(instance);
-    }
-
     public static ShadowPopupWindow shadowOf(PopupWindow instance) {
         return (ShadowPopupWindow) shadowOf_(instance);
     }
@@ -945,19 +938,6 @@ public class Robolectric {
 
     public static ShadowSmsManager shadowOf(SmsManager instance) {
         return (ShadowSmsManager) shadowOf_(instance);
-    }
-
-    public static <E> ShadowSparseArray<E> shadowOf(SparseArray<E> other) {
-        //noinspection unchecked
-        return (ShadowSparseArray<E>) Robolectric.shadowOf_(other);
-    }
-
-    public static ShadowSparseBooleanArray shadowOf(SparseBooleanArray other) {
-        return (ShadowSparseBooleanArray) Robolectric.shadowOf_(other);
-    }
-    
-    public static ShadowSparseIntArray shadowOf(SparseIntArray other){
-    	return (ShadowSparseIntArray) Robolectric.shadowOf_(other);
     }
 
     public static ShadowSQLiteCursor shadowOf(SQLiteCursor other) {
@@ -1070,6 +1050,10 @@ public class Robolectric {
 
     public static ShadowWebView shadowOf(WebView instance) {
         return (ShadowWebView) shadowOf_(instance);
+    }
+
+    public static ShadowWebViewDatabase shadowOf(WebViewDatabase instance) {
+        return (ShadowWebViewDatabase) shadowOf_(instance);
     }
 
     public static ShadowWifiConfiguration shadowOf(WifiConfiguration instance) {
@@ -1443,7 +1427,7 @@ public class Robolectric {
 
         public static Object setFinalStaticField(Field field, Object newValue) {
         	Object oldValue;
-        	
+
             try {
                 field.setAccessible(true);
 
