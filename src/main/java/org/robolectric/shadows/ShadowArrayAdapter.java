@@ -7,8 +7,8 @@ import android.widget.ArrayAdapter;
 import android.widget.Filter;
 import android.widget.TextView;
 import org.robolectric.Robolectric;
-import org.robolectric.internal.Implementation;
-import org.robolectric.internal.Implements;
+import org.robolectric.annotation.Implementation;
+import org.robolectric.annotation.Implements;
 import org.robolectric.res.ResourceLoader;
 import org.robolectric.res.builder.LayoutBuilder;
 
@@ -136,13 +136,7 @@ public class ShadowArrayAdapter<T> extends ShadowBaseAdapter {
         } else {
             text = (TextView) view.findViewById(textViewResourceId);
         }
-
-        if (item instanceof CharSequence) {
-            Robolectric.shadowOf(text).setText((CharSequence)item);
-        } else {
-        	Robolectric.shadowOf(text).setText(item.toString());
-        }
-
+        text.setText(item instanceof CharSequence ? (CharSequence) item : item.toString());
         return view;
     }
 

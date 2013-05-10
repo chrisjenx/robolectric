@@ -94,17 +94,16 @@ public class ContextWrapperTest {
 
         new ContextWrapper(Robolectric.application).unregisterReceiver(receiver);
     }
-	
-	@Test
-	public void broadcasts_shouldBeLogged() {
-		Intent broadcastIntent = new Intent("foo");
-		contextWrapper.sendBroadcast(broadcastIntent);
-		
-		List<Intent> broadcastIntents = shadowOf(contextWrapper).getBroadcastIntents();
-		assertTrue(broadcastIntents.size() == 1);
-		assertEquals(broadcastIntent, broadcastIntents.get(0));
-	}
-	
+
+    @Test
+    public void broadcasts_shouldBeLogged() {
+        Intent broadcastIntent = new Intent("foo");
+        contextWrapper.sendBroadcast(broadcastIntent);
+
+        List<Intent> broadcastIntents = shadowOf(contextWrapper).getBroadcastIntents();
+        assertTrue(broadcastIntents.size() == 1);
+        assertEquals(broadcastIntent, broadcastIntents.get(0));
+    }
 
     @Test
     public void shouldReturnSameApplicationEveryTime() throws Exception {
@@ -156,13 +155,14 @@ public class ContextWrapperTest {
     @Test
     public void shouldReturnAContext() {
         assertThat(contextWrapper.getBaseContext()).isNotNull();
-    	ShadowContextWrapper shContextWrapper = Robolectric.shadowOf(contextWrapper);
-    	shContextWrapper.attachBaseContext(null);
+
+        contextWrapper = new ContextWrapper(null);
+        shadowOf(contextWrapper).callAttachBaseContext(null);
         assertThat(contextWrapper.getBaseContext()).isNull();
 
-    	Activity baseContext = new Activity();
-    	shContextWrapper.attachBaseContext(baseContext);
-        assertThat(contextWrapper.getBaseContext()).isSameAs((Context) baseContext);
+        Activity baseContext = new Activity();
+        shadowOf(contextWrapper).callAttachBaseContext(baseContext);
+        assertThat(contextWrapper.getBaseContext()).isSameAs(baseContext);
     }
 
     private void assertSameInstanceEveryTime(String serviceName) {
@@ -200,13 +200,39 @@ public class ContextWrapperTest {
     }
 
     @Test
-    public void checkCallingPermissionShouldGrantPermissionByDefault() throws Exception {
-        assertThat(contextWrapper.checkCallingPermission("")).isEqualTo(PERMISSION_GRANTED);
+    public void checkCallingPermissionsShouldReturnPermissionGrantedToAddedPermissions() throws Exception {
+        shadowOf(contextWrapper).grantPermissions("foo", "bar");
+        assertThat(contextWrapper.checkCallingPermission("foo")).isEqualTo(PERMISSION_GRANTED);
+        assertThat(contextWrapper.checkCallingPermission("bar")).isEqualTo(PERMISSION_GRANTED);
+        assertThat(contextWrapper.checkCallingPermission("baz")).isEqualTo(PERMISSION_DENIED);
     }
 
     @Test
-    public void checkCallingOrSelfPermissionShouldGrantPermissionByDefault() throws Exception {
-        assertThat(contextWrapper.checkCallingOrSelfPermission("")).isEqualTo(PERMISSION_GRANTED);
+    public void checkCallingOrSelfPermissionsShouldReturnPermissionGrantedToAddedPermissions() throws Exception {
+        shadowOf(contextWrapper).grantPermissions("foo", "bar");
+        assertThat(contextWrapper.checkCallingOrSelfPermission("foo")).isEqualTo(PERMISSION_GRANTED);
+        assertThat(contextWrapper.checkCallingOrSelfPermission("bar")).isEqualTo(PERMISSION_GRANTED);
+        assertThat(contextWrapper.checkCallingOrSelfPermission("baz")).isEqualTo(PERMISSION_DENIED);
+    }
+
+    @Test
+    public void checkCallingPermission_shouldReturnPermissionDeniedForRemovedPermissions() throws Exception {
+        shadowOf(contextWrapper).grantPermissions("foo", "bar");
+        shadowOf(contextWrapper).denyPermissions("foo", "qux");
+        assertThat(contextWrapper.checkCallingPermission("foo")).isEqualTo(PERMISSION_DENIED);
+        assertThat(contextWrapper.checkCallingPermission("bar")).isEqualTo(PERMISSION_GRANTED);
+        assertThat(contextWrapper.checkCallingPermission("baz")).isEqualTo(PERMISSION_DENIED);
+        assertThat(contextWrapper.checkCallingPermission("qux")).isEqualTo(PERMISSION_DENIED);
+    }
+
+    @Test
+    public void checkCallingOrSelfPermission_shouldReturnPermissionDeniedForRemovedPermissions() throws Exception {
+        shadowOf(contextWrapper).grantPermissions("foo", "bar");
+        shadowOf(contextWrapper).denyPermissions("foo", "qux");
+        assertThat(contextWrapper.checkCallingOrSelfPermission("foo")).isEqualTo(PERMISSION_DENIED);
+        assertThat(contextWrapper.checkCallingOrSelfPermission("bar")).isEqualTo(PERMISSION_GRANTED);
+        assertThat(contextWrapper.checkCallingOrSelfPermission("baz")).isEqualTo(PERMISSION_DENIED);
+        assertThat(contextWrapper.checkCallingOrSelfPermission("qux")).isEqualTo(PERMISSION_DENIED);
     }
 
     @Test

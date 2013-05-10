@@ -6,14 +6,17 @@ import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
 import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.content.OperationApplicationException;
 import android.content.PeriodicSync;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+
 import org.robolectric.Robolectric;
-import org.robolectric.internal.Implementation;
-import org.robolectric.internal.Implements;
+import org.robolectric.annotation.Implementation;
+import org.robolectric.annotation.Implements;
+import org.robolectric.internal.NamedStream;
 import org.robolectric.tester.android.database.TestCursor;
 
 import java.io.IOException;
@@ -85,17 +88,7 @@ public class ShadowContentResolver {
             }
         }
 
-        return new InputStream() {
-            @Override
-            public int read() throws IOException {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public String toString() {
-                return "stream for " + uri;
-            }
-        };
+        return new MyInputStream(uri);
     }
     
     @Implementation
@@ -197,9 +190,14 @@ public class ShadowContentResolver {
     }
 
     @Implementation
-    public ContentProviderResult[] applyBatch(String authority, ArrayList<ContentProviderOperation> operations) {
-        contentProviderOperations.put(authority, operations);
-        return contentProviderResults;
+    public ContentProviderResult[] applyBatch(String authority, ArrayList<ContentProviderOperation> operations) throws OperationApplicationException {
+        ContentProvider provider = providers.get(authority);
+        if (provider != null) {
+            return provider.applyBatch(operations);
+        } else {
+            contentProviderOperations.put(authority, operations);
+            return contentProviderResults;
+        }
     }
 
     @Implementation
@@ -479,6 +477,24 @@ public class ShadowContentResolver {
 
         public String[] getSelectionArgs() {
             return selectionArgs;
+        }
+    }
+
+    private static class MyInputStream extends InputStream implements NamedStream {
+        private final Uri uri;
+
+        public MyInputStream(Uri uri) {
+            this.uri = uri;
+        }
+
+        @Override
+        public int read() throws IOException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public String toString() {
+            return "stream for " + uri;
         }
     }
 }

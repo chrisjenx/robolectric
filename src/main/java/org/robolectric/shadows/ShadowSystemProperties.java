@@ -1,8 +1,8 @@
 package org.robolectric.shadows;
 
 import org.robolectric.Robolectric;
-import org.robolectric.internal.Implementation;
-import org.robolectric.internal.Implements;
+import org.robolectric.annotation.Implementation;
+import org.robolectric.annotation.Implements;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -19,6 +19,7 @@ public class ShadowSystemProperties {
         VALUES.put("ro.debuggable", 0);
         VALUES.put("ro.secure", 1);
         VALUES.put("log.closeguard.Animation", false);
+        VALUES.put("debug.choreographer.vsync", false); // disable vsync for Choreographer
     }
 
     @Implementation

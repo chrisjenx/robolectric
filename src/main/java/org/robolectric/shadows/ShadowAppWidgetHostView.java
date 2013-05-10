@@ -3,10 +3,10 @@ package org.robolectric.shadows;
 import android.appwidget.AppWidgetHost;
 import android.appwidget.AppWidgetHostView;
 import android.appwidget.AppWidgetProviderInfo;
-import org.robolectric.internal.Implementation;
-import org.robolectric.internal.Implements;
+import org.robolectric.annotation.Implementation;
+import org.robolectric.annotation.Implements;
 
-@Implements(value = AppWidgetHostView.class, inheritImplementationMethods = true)
+@Implements(value = AppWidgetHostView.class)
 public class ShadowAppWidgetHostView extends ShadowFrameLayout {
 
     private int appWidgetId;

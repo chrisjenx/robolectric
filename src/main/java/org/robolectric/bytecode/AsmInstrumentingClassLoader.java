@@ -42,7 +42,6 @@ import java.util.Set;
 
 import static org.objectweb.asm.Type.*;
 import static org.robolectric.util.Util.readBytes;
-import static org.robolectric.util.Util.reverse;
 
 public class AsmInstrumentingClassLoader extends ClassLoader implements Opcodes, InstrumentingClassLoader {
     private static final String OBJECT_DESC = Type.getDescriptor(Object.class);
@@ -50,14 +49,15 @@ public class AsmInstrumentingClassLoader extends ClassLoader implements Opcodes,
     private static final Type STRING_TYPE = getType(String.class);
     private static final Type ROBOLECTRIC_INTERNALS_TYPE = Type.getType(RobolectricInternals.class);
     private static final Type PLAN_TYPE = Type.getType(ClassHandler.Plan.class);
-    private static final Method PLAN_RUN_METHOD = new Method("run", OBJECT_TYPE, new Type[]{OBJECT_TYPE, Type.getType(Object[].class)});
     private static final Type THROWABLE_TYPE = Type.getType(Throwable.class);
     private static final Method INITIALIZING_METHOD = new Method("initializing", "(Ljava/lang/Object;)Ljava/lang/Object;");
     private static final Method METHOD_INVOKED_METHOD = new Method("methodInvoked", "(Ljava/lang/String;ZLjava/lang/Class;)L" + PLAN_TYPE.getInternalName() + ";");
+    private static final Method PLAN_RUN_METHOD = new Method("run", OBJECT_TYPE, new Type[]{OBJECT_TYPE, OBJECT_TYPE, Type.getType(Object[].class)});
     private static final Method HANDLE_EXCEPTION_METHOD = new Method("cleanStackTrace", THROWABLE_TYPE, new Type[]{THROWABLE_TYPE});
     private static final String DIRECT_OBJECT_MARKER_TYPE_DESC = Type.getObjectType(DirectObjectMarker.class.getName().replace('.', '/')).getDescriptor();
     private static final String ROBO_INIT_METHOD_NAME = "$$robo$init";
     static final String GET_ROBO_DATA_METHOD_NAME = "$$robo$getData";
+    private static final String GET_ROBO_DATA_SIGNATURE = "()Ljava/lang/Object;";
 
     private static boolean debug = false;
 
@@ -448,10 +448,6 @@ public class AsmInstrumentingClassLoader extends ClassLoader implements Opcodes,
             }
             instrumentSpecial(foundMethods, "toString", "()Ljava/lang/String;");
 
-//            for (MethodNode method : (List<MethodNode>)classNode.methods) {
-//                System.out.println("method = " + method.name + method.desc);
-//            }
-
             {
                 MethodNode initMethodNode = new MethodNode(ACC_PROTECTED, ROBO_INIT_METHOD_NAME, "()V", null, null);
                 MyGenerator m = new MyGenerator(initMethodNode);
@@ -469,7 +465,7 @@ public class AsmInstrumentingClassLoader extends ClassLoader implements Opcodes,
             }
 
             {
-                MethodNode initMethodNode = new MethodNode(ACC_PRIVATE, GET_ROBO_DATA_METHOD_NAME, "()Ljava/lang/Object;", null, null);
+                MethodNode initMethodNode = new MethodNode(ACC_PROTECTED, GET_ROBO_DATA_METHOD_NAME, GET_ROBO_DATA_SIGNATURE, null, null);
                 MyGenerator m = new MyGenerator(initMethodNode);
                 m.loadThis();                                         // this
                 m.getField(classType, CLASS_HANDLER_DATA_FIELD_NAME, OBJECT_TYPE);  // contents of __robo_data__
@@ -546,54 +542,25 @@ public class AsmInstrumentingClassLoader extends ClassLoader implements Opcodes,
                 li.remove();
                 removedInstructions.add(node);
 
-                if (node.getOpcode() == INVOKESPECIAL) {
-                    MethodInsnNode mnode = (MethodInsnNode) node;
-                    if (mnode.owner.equals(internalClassName) || mnode.owner.equals(classNode.superName)) {
-                        assert mnode.name.equals("<init>");
-                        return removedInstructions;
-                    }
-                }
+                switch (node.getOpcode()) {
+                    case INVOKESPECIAL:
+                        MethodInsnNode mnode = (MethodInsnNode) node;
+                        if (mnode.owner.equals(internalClassName) || mnode.owner.equals(classNode.superName)) {
+                            assert mnode.name.equals("<init>");
+                            return removedInstructions;
+                        }
+                        break;
 
-                if (node.getOpcode() == ATHROW) {
-//                    removedInstructions.clear();
-                    ctor.visitCode();
-                    ctor.visitInsn(RETURN);
-                    ctor.visitEnd();
-                    System.out.println("ignoring throw in " + ctor.name + ctor.desc);
-                    return removedInstructions;
+                    case ATHROW:
+                        ctor.visitCode();
+                        ctor.visitInsn(RETURN);
+                        ctor.visitEnd();
+                        System.out.println("ignoring throw in " + ctor.name + ctor.desc);
+                        return removedInstructions;
                 }
             }
 
             throw new RuntimeException("huh? " + ctor.name + ctor.desc);
-
-//            // Look for the ALOAD 0 (i.e., push this on the stack)
-//            while (li.hasNext()) {
-//                AbstractInsnNode node = (AbstractInsnNode) li.next();
-//                if (node.getOpcode() == ALOAD) {
-//                    VarInsnNode varNode = (VarInsnNode) node;
-//                    assert varNode.var == 0;
-//                    // Remove the ALOAD
-//                    li.remove();
-//                    break;
-//                }
-//            }
-//
-//            // Look for the call to the super-class, an INVOKESPECIAL
-//            while (li.hasNext()) {
-//                AbstractInsnNode node = (AbstractInsnNode) li.next();
-//                if (node.getOpcode() == INVOKESPECIAL) {
-//                    MethodInsnNode mnode = (MethodInsnNode) node;
-////                assert mnode.owner.equals(methodNo.superName);
-//                    assert mnode.name.equals("<init>");
-////                assert mnode.desc.equals(cons.desc);
-//
-//                    li.remove();
-//                    return removedInstructions;
-//                }
-//            }
-//
-////        throw new AssertionError("Could not convert constructor " + classNode.name + ctor.name + " to simple method.");
-//            return removedInstructions;
         }
 
         private void instrumentNormalMethod(MethodNode method) {
@@ -681,21 +648,46 @@ public class AsmInstrumentingClassLoader extends ClassLoader implements Opcodes,
 
             instructions.remove(); // remove the method invocation
 
-            // first, throw away arguments (ugh)
-            for (Type type : reverse(Type.getArgumentTypes(targetMethod.desc))) {
-                instructions.add(type.getSize() == 2 ? new InsnNode(POP2) : new InsnNode(POP));
-            }
+            Type[] argumentTypes = Type.getArgumentTypes(targetMethod.desc);
 
-            instructions.add(new LdcInsnNode(targetMethod.owner + "/" + targetMethod.name + targetMethod.desc)); // target method signature
-            if (isStatic) {
-                instructions.add(new InsnNode(Opcodes.ACONST_NULL));  // self or null if static
-            } else {
-                instructions.add(new InsnNode(SWAP)); // keep instance at the top of the stack
-            }
-
-            instructions.add(new LdcInsnNode(0));
+            instructions.add(new LdcInsnNode(argumentTypes.length));
             instructions.add(new TypeInsnNode(ANEWARRAY, "java/lang/Object"));
-            instructions.add(new LdcInsnNode(classType));
+
+            // first, move any arguments into an Object[]
+            for (int i = argumentTypes.length - 1; i >= 0 ; i--) {
+                Type type = argumentTypes[i];
+                int argWidth = type.getSize();
+
+                if (argWidth == 1) {                         // A B C []
+                    instructions.add(new InsnNode(DUP_X1));  // A B [] C []
+                    instructions.add(new InsnNode(SWAP));    // A B [] [] C
+                    instructions.add(new LdcInsnNode(i));    // A B [] [] C 2
+                    instructions.add(new InsnNode(SWAP));    // A B [] [] 2 C
+                    box(type, instructions);                 // A B [] [] 2 (C)
+                    instructions.add(new InsnNode(AASTORE)); // A B [(C)]
+                } else if (argWidth == 2) {                  // A B _C_ []
+                    instructions.add(new InsnNode(DUP_X2));  // A B [] _C_ []
+                    instructions.add(new InsnNode(DUP_X2));  // A B [] [] _C_ []
+                    instructions.add(new InsnNode(POP));     // A B [] [] _C_
+                    box(type, instructions);                 // A B [] [] (C)
+                    instructions.add(new LdcInsnNode(i));    // A B [] [] (C) 2
+                    instructions.add(new InsnNode(SWAP));    // A B [] [] 2 (C)
+                    instructions.add(new InsnNode(AASTORE)); // A B [(C)]
+                }
+            }
+
+            if (isStatic) { // []
+                instructions.add(new InsnNode(Opcodes.ACONST_NULL)); // [] null
+                instructions.add(new InsnNode(Opcodes.SWAP));        // null []
+            }
+
+            // instance []
+            instructions.add(new LdcInsnNode(targetMethod.owner + "/" + targetMethod.name + targetMethod.desc)); // target method signature
+            // instance [] signature
+            instructions.add(new InsnNode(DUP_X2));       // signature instance [] signature
+            instructions.add(new InsnNode(POP));          // signature instance []
+
+            instructions.add(new LdcInsnNode(classType)); // signature instance [] class
             instructions.add(new MethodInsnNode(INVOKESTATIC,
                     Type.getType(RobolectricInternals.class).getInternalName(), "intercept",
                     "(Ljava/lang/String;Ljava/lang/Object;[Ljava/lang/Object;Ljava/lang/Class;)Ljava/lang/Object;"));
@@ -810,8 +802,14 @@ public class AsmInstrumentingClassLoader extends ClassLoader implements Opcodes,
             // prepare for call to plan.run(Object instance, Object[] params)
             TryCatch tryCatchForHandler = m.tryStart(THROWABLE_TYPE);
             m.loadLocal(planLocalVar); // plan
-            m.loadThisOrNull();
-            m.loadArgArray();
+            m.loadThisOrNull();        // instance
+            if (m.isStatic()) {        // roboData
+                m.loadNull();
+            } else {
+                m.loadThis();
+                m.invokeVirtual(classType, new Method(GET_ROBO_DATA_METHOD_NAME, GET_ROBO_DATA_SIGNATURE));
+            }
+            m.loadArgArray();          // params
             m.invokeInterface(PLAN_TYPE, PLAN_RUN_METHOD);
 
             Type returnType = m.getReturnType();
@@ -875,7 +873,54 @@ public class AsmInstrumentingClassLoader extends ClassLoader implements Opcodes,
         }
     }
 
+    public static void box(final Type type, ListIterator<AbstractInsnNode> instructions) {
+        if (type.getSort() == Type.OBJECT || type.getSort() == Type.ARRAY) {
+            return;
+        }
+
+        if (type == Type.VOID_TYPE) {
+            instructions.add(new InsnNode(ACONST_NULL));
+        } else {
+            Type boxed = getBoxedType(type);
+            instructions.add(new TypeInsnNode(NEW, boxed.getInternalName()));
+            if (type.getSize() == 2) {
+                // Pp -> Ppo -> oPpo -> ooPpo -> ooPp -> o
+                instructions.add(new InsnNode(DUP_X2));
+                instructions.add(new InsnNode(DUP_X2));
+                instructions.add(new InsnNode(POP));
+            } else {
+                // p -> po -> opo -> oop -> o
+                instructions.add(new InsnNode(DUP_X1));
+                instructions.add(new InsnNode(SWAP));
+            }
+            instructions.add(new MethodInsnNode(INVOKESPECIAL, boxed.getInternalName(), "<init>", "(" + type.getDescriptor() + ")V"));
+        }
+    }
+
+    private static Type getBoxedType(final Type type) {
+        switch (type.getSort()) {
+            case Type.BYTE:
+                return Type.getObjectType("java/lang/Byte");
+            case Type.BOOLEAN:
+                return Type.getObjectType("java/lang/Boolean");
+            case Type.SHORT:
+                return Type.getObjectType("java/lang/Short");
+            case Type.CHAR:
+                return Type.getObjectType("java/lang/Character");
+            case Type.INT:
+                return Type.getObjectType("java/lang/Integer");
+            case Type.FLOAT:
+                return Type.getObjectType("java/lang/Float");
+            case Type.LONG:
+                return Type.getObjectType("java/lang/Long");
+            case Type.DOUBLE:
+                return Type.getObjectType("java/lang/Double");
+        }
+        return type;
+    }
+
     private boolean shouldIntercept(MethodInsnNode targetMethod) {
+        if (targetMethod.name.equals("<init>")) return false; // sorry, can't strip out calls to super() in constructor
         return methodsToIntercept.contains(new Setup.MethodRef(targetMethod.owner, targetMethod.name))
                 || methodsToIntercept.contains(new Setup.MethodRef(targetMethod.owner, "*"));
     }

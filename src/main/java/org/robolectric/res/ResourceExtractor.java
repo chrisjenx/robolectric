@@ -15,6 +15,10 @@ public class ResourceExtractor extends ResourceIndex {
         processedRFile = null;
     }
 
+    /**
+     * Constructs a ResourceExtractor for the Android system resources.
+     * @param classLoader
+     */
     public ResourceExtractor(ClassLoader classLoader) {
         Class<?> androidRClass;
         try {
@@ -85,14 +89,14 @@ public class ResourceExtractor extends ResourceIndex {
     @Override
     public synchronized Integer getResourceId(ResName resName) {
         Integer id = resourceNameToId.get(resName);
-        if (id == null && ("android".equals(resName.namespace) || "".equals(resName.namespace))) {
+        if (id == null && ("android".equals(resName.packageName) || "".equals(resName.packageName))) {
             if (maxUsedInt == null) {
                 maxUsedInt = resourceIdToResName.isEmpty() ? 0 : Collections.max(resourceIdToResName.keySet());
             }
             id = ++maxUsedInt;
             resourceNameToId.put(resName, id);
             resourceIdToResName.put(id, resName);
-            System.out.println("INFO: no id mapping found for " + resName.getFullyQualifiedName() + "; assigning " + id);
+            System.out.println("INFO: no id mapping found for " + resName.getFullyQualifiedName() + "; assigning ID #0x" + Integer.toHexString(id));
         }
         return id;
     }

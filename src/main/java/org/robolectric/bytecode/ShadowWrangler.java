@@ -1,7 +1,9 @@
 package org.robolectric.bytecode;
 
-import org.robolectric.internal.Implements;
-import org.robolectric.internal.RealObject;
+import android.view.ContextThemeWrapper;
+import org.robolectric.annotation.Implements;
+import org.robolectric.annotation.RealObject;
+import org.robolectric.shadows.ShadowWindow;
 import org.robolectric.util.Function;
 
 import java.lang.reflect.Array;
@@ -17,22 +19,23 @@ import java.util.List;
 import java.util.Map;
 
 import static org.fest.reflect.core.Reflection.method;
+import static org.fest.reflect.core.Reflection.type;
 
 public class ShadowWrangler implements ClassHandler {
     public static final Function<Object, Object> DO_NOTHING_HANDLER = new Function<Object, Object>() {
         @Override
-        public Object call(Object value) {
+        public Object call(Class<?> theClass, Object value, Object[] params) {
             return null;
         }
     };
-    private static final boolean STRIP_SHADOW_STACK_TRACES = true;
     public static final Plan DO_NOTHING_PLAN = new Plan() {
-        @Override public Object run(Object instance, Object[] params) throws Exception {
+        @Override public Object run(Object instance, Object roboData, Object[] params) throws Exception {
             return null;
         }
     };
     public static final Plan CALL_REAL_CODE_PLAN = null;
-
+    private static final boolean STRIP_SHADOW_STACK_TRACES = true;
+    private static final ShadowConfig NO_SHADOW_CONFIG = new ShadowConfig(Object.class.getName(), true, false);
     public boolean debug = false;
 
     private final ShadowMap shadowMap;
@@ -42,6 +45,7 @@ public class ShadowWrangler implements ClassHandler {
             return size() > 500;
         }
     };
+    private final Map<Class, ShadowConfig> shadowConfigCache = new HashMap<Class, ShadowConfig>();
 
     public ShadowWrangler(ShadowMap shadowMap) {
         this.shadowMap = shadowMap;
@@ -76,6 +80,7 @@ public class ShadowWrangler implements ClassHandler {
 
     @Override
     synchronized public Plan methodInvoked(String signature, boolean isStatic, Class<?> theClass) {
+        if (debug) System.out.println("[DEBUG] " + signature);
         if (planCache.containsKey(signature)) return planCache.get(signature);
         Plan plan = calculatePlan(signature, isStatic, theClass);
         planCache.put(signature, plan);
@@ -84,13 +89,13 @@ public class ShadowWrangler implements ClassHandler {
 
     private Plan calculatePlan(String signature, boolean isStatic, Class<?> theClass) {
         final InvocationProfile invocationProfile = new InvocationProfile(signature, isStatic, theClass.getClassLoader());
-        ShadowConfig shadowConfig = shadowMap.get(invocationProfile.clazz);
+        ShadowConfig shadowConfig = getShadowConfig(invocationProfile.clazz);
 
         // enable call-through for for inner classes if an outer class has call-through turned on
         Class<?> clazz = invocationProfile.clazz;
         while (shadowConfig == null && clazz.getDeclaringClass() != null) {
             clazz = clazz.getDeclaringClass();
-            ShadowConfig outerConfig = shadowMap.get(clazz);
+            ShadowConfig outerConfig = getShadowConfig(clazz);
             if (outerConfig != null && outerConfig.callThroughByDefault) {
                 shadowConfig = new ShadowConfig(Object.class.getName(), true, false);
             }
@@ -130,6 +135,17 @@ public class ShadowWrangler implements ClassHandler {
             } catch (ClassNotFoundException e) {
                 throw new RuntimeException(e);
             }
+        }
+    }
+
+    synchronized private ShadowConfig getShadowConfig(Class clazz) {
+        ShadowConfig shadowConfig = shadowConfigCache.get(clazz);
+        if (shadowConfig == null) {
+            shadowConfig = shadowMap.get(clazz);
+            shadowConfigCache.put(clazz, shadowConfig == null ? NO_SHADOW_CONFIG : shadowConfig);
+            return shadowConfig;
+        } else {
+            return (shadowConfig == NO_SHADOW_CONFIG) ? null : shadowConfig;
         }
     }
 
@@ -176,23 +192,38 @@ public class ShadowWrangler implements ClassHandler {
     }
 
     @Override
-    public Object intercept(String signature, Object instance, Object[] paramTypes, Class theClass) throws Throwable {
+    public Object intercept(String signature, Object instance, Object[] params, Class theClass) throws Throwable {
         MethodSignature methodSignature = MethodSignature.parse(signature);
 
         if (debug) {
             System.out.println("DEBUG: intercepted call to " + methodSignature);
         }
 
-        return getInterceptionHandler(methodSignature).call(instance);
+        return getInterceptionHandler(methodSignature).call(theClass, instance, params);
     }
 
     public Function<Object, Object> getInterceptionHandler(MethodSignature methodSignature) {
-        if (methodSignature.className.equals(LinkedHashMap.class.getName()) && methodSignature.methodName.equals("eldest")) {
+        // todo: move these somewhere else!
+        if (methodSignature.matches(LinkedHashMap.class.getName(), "eldest")) {
             return new Function<Object, Object>() {
                 @Override
-                public Object call(Object value) {
+                public Object call(Class<?> theClass, Object value, Object[] params) {
                     LinkedHashMap map = (LinkedHashMap) value;
                     return map.entrySet().iterator().next();
+                }
+            };
+        } else if (methodSignature.matches("com.android.internal.policy.PolicyManager", "makeNewWindow")) {
+            return new Function<Object, Object>() {
+                @Override public Object call(Class<?> theClass, Object value, Object[] params) {
+                    ClassLoader cl = theClass.getClassLoader();
+                    Class<?> shadowWindowClass = type(ShadowWindow.class.getName()).withClassLoader(cl).load();
+                    Class<?> activityClass = type(ContextThemeWrapper.class.getName()).withClassLoader(cl).load();
+
+                    Object context = params[0];
+                    return method("create")
+                            .withParameterTypes(activityClass)
+                            .in(shadowWindowClass)
+                            .invoke(context);
                 }
             };
         }
@@ -278,7 +309,7 @@ public class ShadowWrangler implements ClassHandler {
     public Object createShadowFor(Object instance) {
         Object shadow;
 
-        String shadowClassName = shadowMap.getShadowClassName(instance.getClass());
+        String shadowClassName = getShadowClassName(instance);
 
         if (shadowClassName == null) return new Object();
 
@@ -305,6 +336,16 @@ public class ShadowWrangler implements ClassHandler {
         }
     }
 
+    private String getShadowClassName(Object instance) {
+        Class clazz = instance.getClass();
+        ShadowConfig shadowConfig = null;
+        while (shadowConfig == null && clazz != null) {
+            shadowConfig = getShadowConfig(clazz);
+            clazz = clazz.getSuperclass();
+        }
+        return shadowConfig == null ? null : shadowConfig.shadowClassName;
+    }
+
     private void injectRealObjectOn(Object shadow, Class<?> shadowClass, Object instance) {
         MetaShadow metaShadow = getMetaShadow(shadowClass);
         for (Field realObjectField : metaShadow.realObjectFields) {
@@ -324,7 +365,7 @@ public class ShadowWrangler implements ClassHandler {
     }
 
     private Class<?> findDirectShadowClass(Class<?> originalClass) {
-        ShadowConfig shadowConfig = shadowMap.get(originalClass);
+        ShadowConfig shadowConfig = getShadowConfig(originalClass);
         if (shadowConfig == null) {
             return null;
         }
@@ -391,8 +432,9 @@ public class ShadowWrangler implements ClassHandler {
             this.shadowMethod = shadowMethod;
         }
 
-        @Override public Object run(Object instance, Object[] params) throws Throwable {
-            Object shadow = instance == null ? null : shadowOf(instance);
+        @Override public Object run(Object instance, Object roboData, Object[] params) throws Throwable {
+            //noinspection UnnecessaryLocalVariable
+            Object shadow = roboData;
             try {
 //                System.out.println("invoke " + shadowMethod);
                 return shadowMethod.invoke(shadow, params);

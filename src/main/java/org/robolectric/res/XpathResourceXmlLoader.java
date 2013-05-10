@@ -11,27 +11,43 @@ import javax.xml.xpath.XPathExpressionException;
 
 public abstract class XpathResourceXmlLoader extends XmlLoader {
     private String expression;
-    private String attrType;
 
-    public XpathResourceXmlLoader(String expression, String attrType) {
+    public XpathResourceXmlLoader(String expression) {
         this.expression = expression;
-        this.attrType = attrType;
     }
 
     @Override protected void processResourceXml(FsFile xmlFile, XmlNode xmlNode, XmlContext xmlContext) throws Exception {
         for (XmlNode node : xmlNode.selectByXpath(expression)) {
             String name = node.getAttrValue("name");
-            processNode(name, node, xmlContext, attrType);
+            processNode(name, node, xmlContext);
         }
     }
 
-    protected abstract void processNode(String name, XmlNode xmlNode, XmlContext xmlContext, String attrType) throws XPathExpressionException;
+    protected abstract void processNode(String name, XmlNode xmlNode, XmlContext xmlContext) throws XPathExpressionException;
 
     public static class XmlNode {
         private final VTDNav vtdNav;
 
         public XmlNode(VTDNav vtdNav) {
             this.vtdNav = vtdNav;
+        }
+
+        public String getElementName() {
+            try {
+                return vtdNav.toString(vtdNav.getCurrentIndex());
+            } catch (NavException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public XmlNode getFirstChild() {
+            try {
+              VTDNav cloneVtdNav = vtdNav.cloneNav();
+              if (!cloneVtdNav.toElement(VTDNav.FIRST_CHILD)) return null;
+              return new XmlNode(cloneVtdNav);
+            } catch (NavException e) {
+              throw new RuntimeException(e);
+            }
         }
 
         public String getTextContent() {

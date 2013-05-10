@@ -14,18 +14,17 @@ import org.robolectric.annotation.DisableStrictI18n;
 import org.robolectric.annotation.EnableStrictI18n;
 import org.robolectric.annotation.WithConstantInt;
 import org.robolectric.annotation.WithConstantString;
-import org.robolectric.bytecode.AndroidTranslator;
 import org.robolectric.bytecode.AsmInstrumentingClassLoader;
-import org.robolectric.bytecode.ClassCache;
 import org.robolectric.bytecode.ClassHandler;
-import org.robolectric.bytecode.JavassistInstrumentingClassLoader;
 import org.robolectric.bytecode.RobolectricInternals;
 import org.robolectric.bytecode.Setup;
 import org.robolectric.bytecode.ShadowMap;
 import org.robolectric.bytecode.ShadowWrangler;
-import org.robolectric.bytecode.ZipClassCache;
 import org.robolectric.internal.ParallelUniverse;
 import org.robolectric.internal.ParallelUniverseInterface;
+import org.robolectric.res.DocumentLoader;
+import org.robolectric.res.Fs;
+import org.robolectric.res.FsFile;
 import org.robolectric.res.OverlayResourceLoader;
 import org.robolectric.res.PackageResourceLoader;
 import org.robolectric.res.ResourceLoader;
@@ -37,9 +36,9 @@ import org.robolectric.util.DatabaseConfig.DatabaseMap;
 import org.robolectric.util.DatabaseConfig.UsingDatabaseMap;
 import org.robolectric.util.SQLiteMap;
 
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -50,6 +49,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import static org.fest.reflect.core.Reflection.staticField;
 
@@ -80,7 +80,7 @@ public class RobolectricTestRunner extends BlockJUnit4ClassRunner {
 
     /**
      * Creates a runner to run {@code testClass}. Looks in your working directory for your AndroidManifest.xml file
-     * and res directory.
+     * and res directory by default. Use the {@link Config} annotation to configure.
      *
      * @param testClass the test class to be run
      * @throws InitializationError if junit says so
@@ -125,8 +125,16 @@ public class RobolectricTestRunner extends BlockJUnit4ClassRunner {
         return new ShadowWrangler(shadowMap);
     }
 
-    protected AndroidManifest createAppManifest(File baseDir) {
-        return new AndroidManifest(baseDir);
+    protected AndroidManifest createAppManifest(FsFile manifestFile) {
+        if (!manifestFile.exists()) {
+            System.out.print("WARNING: No manifest file found at " + manifestFile.getPath() + ".");
+            System.out.println("Falling back to the Android OS resources only.");
+            System.out.println("To remove this warning, annotate your test class with @Config(manifest=Config.NONE).");
+            return null;
+        }
+
+        FsFile appBaseDir = manifestFile.getParent();
+        return new AndroidManifest(manifestFile, appBaseDir.join("res"), appBaseDir.join("assets"));
     }
 
     public Setup createSetup() {
@@ -139,36 +147,7 @@ public class RobolectricTestRunner extends BlockJUnit4ClassRunner {
 
     protected ClassLoader createRobolectricClassLoader(Setup setup, SdkConfig sdkConfig) {
         URL[] urls = MAVEN_CENTRAL.getLocalArtifactUrls(this, sdkConfig.getSdkClasspathDependencies()).values().toArray(new URL[0]);
-        ClassLoader robolectricClassLoader;
-        if (useAsm()) {
-            robolectricClassLoader = new AsmInstrumentingClassLoader(setup, urls);
-        } else {
-            ClassCache classCache = createClassCache();
-            AndroidTranslator androidTranslator = createAndroidTranslator(setup, classCache);
-            ClassLoader realSdkClassLoader = JavassistInstrumentingClassLoader.makeClassloader(this.getClass().getClassLoader(), urls);
-            robolectricClassLoader = new JavassistInstrumentingClassLoader(realSdkClassLoader, classCache, androidTranslator, setup);
-        }
-        return robolectricClassLoader;
-    }
-
-    public ClassCache createClassCache() {
-        final String classCachePath = System.getProperty("cached.robolectric.classes.path");
-        final File classCacheDirectory;
-        if (null == classCachePath || "".equals(classCachePath.trim())) {
-            classCacheDirectory = new File("./tmp");
-        } else {
-            classCacheDirectory = new File(classCachePath);
-        }
-
-        return new ZipClassCache(new File(classCacheDirectory, "cached-robolectric-classes.jar").getAbsolutePath(), AndroidTranslator.CACHE_VERSION);
-    }
-
-    public AndroidTranslator createAndroidTranslator(Setup setup, ClassCache classCache) {
-        return new AndroidTranslator(classCache, setup);
-    }
-
-    public boolean useAsm() {
-        return true;
+        return new AsmInstrumentingClassLoader(setup, urls);
     }
 
     public static void injectClassHandler(ClassLoader robolectricClassLoader, ClassHandler classHandler) {
@@ -244,7 +223,7 @@ public class RobolectricTestRunner extends BlockJUnit4ClassRunner {
                     parallelUniverseInterface.setDatabaseMap(databaseMap); //Set static DatabaseMap in DBConfig
 
                     boolean strictI18n = RobolectricTestRunner.determineI18nStrictState(bootstrappedMethod);
-                    
+
                     int sdkVersion = pickReportedSdkVersion(config, appManifest);
                     Class<?> versionClass = sdkEnvironment.bootstrappedClass(Build.VERSION.class);
                     staticField("SDK_INT").ofType(int.class).in(versionClass).set(sdkVersion);
@@ -324,30 +303,61 @@ public class RobolectricTestRunner extends BlockJUnit4ClassRunner {
     }
 
     protected AndroidManifest getAppManifest(Config config) {
-        File appManifestBaseDir = new File(".");
+        if (config.manifest().equals(Config.NONE)) {
+            return null;
+        }
+
+        FsFile fsFile = Fs.currentDirectory();
+        String manifestStr = config.manifest().equals(Config.DEFAULT) ? "AndroidManifest.xml" : config.manifest();
+        FsFile manifestFile = fsFile.join(manifestStr);
         synchronized (envHolder) {
             AndroidManifest appManifest;
-            appManifest = envHolder.appManifestsByFile.get(appManifestBaseDir);
+            appManifest = envHolder.appManifestsByFile.get(manifestFile);
             if (appManifest == null) {
-                appManifest = createAppManifest(appManifestBaseDir);
-                envHolder.appManifestsByFile.put(appManifestBaseDir, appManifest);
+
+                long startTime = System.currentTimeMillis();
+                appManifest = createAppManifest(manifestFile);
+                if (DocumentLoader.DEBUG_PERF)
+                    System.out.println(String.format("%4dms spent in %s", System.currentTimeMillis() - startTime, manifestFile));
+
+                envHolder.appManifestsByFile.put(manifestFile, appManifest);
             }
             return appManifest;
         }
     }
 
     public Config getConfig(Method method) {
-        Config methodConfig = method.getAnnotation(Config.class);
-        if (methodConfig == null) {
-            methodConfig = AnnotationUtil.defaultsFor(Config.class);
+        Config config = AnnotationUtil.defaultsFor(Config.class);
+
+        Config globalConfig = Config.Implementation.fromProperties(getConfigProperties());
+        if (globalConfig != null) {
+            config = new Config.Implementation(config, globalConfig);
         }
 
         Config classConfig = method.getDeclaringClass().getAnnotation(Config.class);
-        if (classConfig == null) {
-            classConfig = AnnotationUtil.defaultsFor(Config.class);
+        if (classConfig != null) {
+            config = new Config.Implementation(config, classConfig);
         }
 
-        return new Config.Implementation(classConfig, methodConfig);
+        Config methodConfig = method.getAnnotation(Config.class);
+        if (methodConfig != null) {
+            config = new Config.Implementation(config, methodConfig);
+        }
+
+        return config;
+    }
+
+    protected Properties getConfigProperties() {
+        ClassLoader classLoader = getTestClass().getClass().getClassLoader();
+        InputStream resourceAsStream = classLoader.getResourceAsStream("org.robolectric.Config.properties");
+        if (resourceAsStream == null) return null;
+        Properties properties = new Properties();
+        try {
+            properties.load(resourceAsStream);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return properties;
     }
 
     protected void configureShadows(SdkEnvironment sdkEnvironment, Config config) {
@@ -575,7 +585,6 @@ public class RobolectricTestRunner extends BlockJUnit4ClassRunner {
         return resourceLoader;
     }
 
-    // this method must live on a InstrumentingClassLoader-loaded class, so it can't be on SdkEnvironment
     protected static ResourceLoader createAppResourceLoader(ResourceLoader systemResourceLoader, AndroidManifest appManifest) {
         List<PackageResourceLoader> appAndLibraryResourceLoaders = new ArrayList<PackageResourceLoader>();
         for (ResourcePath resourcePath : appManifest.getIncludedResourcePaths()) {

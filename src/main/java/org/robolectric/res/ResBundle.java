@@ -18,13 +18,6 @@ public class ResBundle<T> {
         Collections.sort(values);
     }
 
-    public void putArray(String attrType, String name, List<T> value, XmlLoader.XmlContext xmlContext) {
-        ResName resName = new ResName(maybeOverride(xmlContext.packageName), attrType, name);
-        Values<List<T>> values = valuesArrayMap.find(resName);
-        values.add(new Value<List<T>>(xmlContext.getQualifiers(), value, xmlContext));
-        Collections.sort(values);
-    }
-
     public T get(ResName resName, String qualifiers) {
         Value<T> value = getValue(resName, qualifiers);
         return value == null ? null : value.value;
@@ -32,16 +25,6 @@ public class ResBundle<T> {
 
     public Value<T> getValue(ResName resName, String qualifiers) {
         Values<T> values = valuesMap.find(maybeOverride(resName));
-        return (values != null) ? pick(values, qualifiers) : null;
-    }
-
-    public List<T> getList(ResName resName, String qualifiers) {
-        Value<List<T>> value = getListValue(resName, qualifiers);
-        return value == null ? null : value.value;
-    }
-
-    public Value<List<T>> getListValue(ResName resName, String qualifiers) {
-        Values<List<T>> values = valuesArrayMap.find(maybeOverride(resName));
         return (values != null) ? pick(values, qualifiers) : null;
     }
 

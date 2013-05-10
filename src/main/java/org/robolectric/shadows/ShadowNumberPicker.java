@@ -1,11 +1,11 @@
 package org.robolectric.shadows;
 
 import android.widget.NumberPicker;
-import org.robolectric.internal.Implementation;
-import org.robolectric.internal.Implements;
+import org.robolectric.annotation.Implementation;
+import org.robolectric.annotation.Implements;
 
 
-@Implements(value = NumberPicker.class, inheritImplementationMethods = true)
+@Implements(value = NumberPicker.class)
 public class ShadowNumberPicker extends ShadowLinearLayout {
     private int value;
     private String[] displayedValues;

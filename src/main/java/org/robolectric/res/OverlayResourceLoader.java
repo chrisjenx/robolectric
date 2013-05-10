@@ -1,7 +1,9 @@
 package org.robolectric.res;
 
-import android.view.View;
+import org.jetbrains.annotations.NotNull;
+import org.w3c.dom.Document;
 
+import java.io.InputStream;
 import java.util.List;
 
 public class OverlayResourceLoader extends XResourceLoader {
@@ -21,10 +23,6 @@ public class OverlayResourceLoader extends XResourceLoader {
         for (PackageResourceLoader subResourceLoader : subResourceLoaders) {
             subResourceLoader.initialize();
 
-            booleanData.mergeLibraryStyle(subResourceLoader.booleanData, packageName);
-            colorData.mergeLibraryStyle(subResourceLoader.colorData, packageName);
-            dimenData.mergeLibraryStyle(subResourceLoader.dimenData, packageName);
-            integerData.mergeLibraryStyle(subResourceLoader.integerData, packageName);
             pluralsData.mergeLibraryStyle(subResourceLoader.pluralsData, packageName);
             stringData.mergeLibraryStyle(subResourceLoader.stringData, packageName);
             layoutData.mergeLibraryStyle(subResourceLoader.layoutData, packageName);
@@ -33,30 +31,48 @@ public class OverlayResourceLoader extends XResourceLoader {
             preferenceData.mergeLibraryStyle(subResourceLoader.preferenceData, packageName);
             xmlDocuments.mergeLibraryStyle(subResourceLoader.xmlDocuments, packageName);
             rawResources.mergeLibraryStyle(subResourceLoader.rawResources, packageName);
+            data.mergeLibraryStyle(subResourceLoader.data, packageName);
         }
     }
 
-    @Override
-    public boolean hasAttributeFor(Class<? extends View> viewClass, String namespace, String attribute) {
-        initialize();
+    @Override public DrawableNode getDrawableNode(ResName resName, String qualifiers) {
+        return super.getDrawableNode(resName.withPackageName(packageName), qualifiers);
+    }
 
-        // todo: this sucks
+    @Override public ViewNode getLayoutViewNode(ResName resName, String qualifiers) {
+        return super.getLayoutViewNode(resName.withPackageName(packageName), qualifiers);
+    }
+
+    @Override public MenuNode getMenuNode(ResName resName, String qualifiers) {
+        return super.getMenuNode(resName.withPackageName(packageName), qualifiers);
+    }
+
+    @Override public Plural getPlural(ResName resName, int quantity, String qualifiers) {
+        return super.getPlural(resName.withPackageName(packageName), quantity, qualifiers);
+    }
+
+    @Override public PreferenceNode getPreferenceNode(ResName resName, String qualifiers) {
+        return super.getPreferenceNode(resName.withPackageName(packageName), qualifiers);
+    }
+
+    @Override public InputStream getRawValue(ResName resName) {
+        return super.getRawValue(resName.withPackageName(packageName));
+    }
+
+    @Override public TypedResource getValue(@NotNull ResName resName, String qualifiers) {
+        return super.getValue(resName.withPackageName(packageName), qualifiers);
+    }
+
+    @Override public Document getXml(ResName resName, String qualifiers) {
+        return super.getXml(resName.withPackageName(packageName), qualifiers);
+    }
+
+    @Override public boolean providesFor(String namespace) {
         for (PackageResourceLoader subResourceLoader : subResourceLoaders) {
-            boolean b = subResourceLoader.hasAttributeFor(viewClass, namespace, attribute);
-            if (b) return true;
+            if (subResourceLoader.providesFor(namespace)) {
+                return true;
+            }
         }
         return false;
-    }
-
-    @Override
-    public String convertValueToEnum(Class<? extends View> viewClass, String namespace, String attribute, String part) {
-        initialize();
-
-        // todo: this sucks
-        for (PackageResourceLoader subResourceLoader : subResourceLoaders) {
-            String s = subResourceLoader.convertValueToEnum(viewClass, namespace, attribute, part);
-            if (s != null) return s;
-        }
-        return null;
     }
 }

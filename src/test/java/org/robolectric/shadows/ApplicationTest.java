@@ -25,9 +25,11 @@ import org.robolectric.TestRunners;
 import org.robolectric.res.EmptyResourceLoader;
 import org.robolectric.res.Fs;
 import org.robolectric.res.ResName;
+import org.robolectric.res.ResType;
 import org.robolectric.res.ResourceExtractor;
 import org.robolectric.res.ResourceIndex;
 import org.robolectric.res.ResourceLoader;
+import org.robolectric.res.TypedResource;
 import org.robolectric.test.TemporaryFolder;
 import org.robolectric.util.TestBroadcastReceiver;
 
@@ -36,6 +38,8 @@ import java.io.FileDescriptor;
 import java.io.IOException;
 import java.util.List;
 
+import static android.content.pm.PackageManager.PERMISSION_DENIED;
+import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static org.fest.assertions.api.Assertions.assertThat;
 import static org.junit.Assert.*;
 import static org.robolectric.Robolectric.shadowOf;
@@ -58,12 +62,22 @@ public class ApplicationTest {
     @Test
     public void shouldBeBindableToAResourceLoader() throws Exception {
         ResourceLoader resourceLoader1 = new EmptyResourceLoader() {
-            @Override public String getStringValue(ResName resName, String qualifiers) { return "title from resourceLoader1"; }
-            @Override public ResourceIndex getResourceIndex() { return new ImperviousResourceExtractor(); }
+            @Override public TypedResource getValue(ResName resName, String qualifiers) {
+                return new TypedResource("title from resourceLoader1", ResType.CHAR_SEQUENCE);
+            }
+
+            @Override public ResourceIndex getResourceIndex() {
+                return new ImperviousResourceExtractor();
+            }
         };
         ResourceLoader resourceLoader2 = new EmptyResourceLoader() {
-            @Override public String getStringValue(ResName resName, String qualifiers) { return "title from resourceLoader2"; }
-            @Override public ResourceIndex getResourceIndex() { return new ImperviousResourceExtractor(); }
+            @Override public TypedResource getValue(ResName resName, String qualifiers) {
+                return new TypedResource("title from resourceLoader2", ResType.CHAR_SEQUENCE);
+            }
+
+            @Override public ResourceIndex getResourceIndex() {
+                return new ImperviousResourceExtractor();
+            }
         };
 
         final Application app1 = new Application();
@@ -105,21 +119,14 @@ public class ApplicationTest {
 
     @Test
     public void packageManager_shouldKnowPackageName() throws Exception {
-        AndroidManifest appManifest = newConfigWith("com.wacka.wa", "");
-        Application application = new DefaultTestLifecycle().createApplication(null, appManifest);
-        shadowOf(application).bind(appManifest, null);
-
-        assertEquals("com.wacka.wa", application.getPackageManager().getPackageInfo("com.wacka.wa", 0).packageName);
+        assertThat(Robolectric.application.getPackageManager().getApplicationInfo("org.robolectric", 0).packageName)
+                .isEqualTo("org.robolectric");
     }
 
     @Test
     public void packageManager_shouldKnowApplicationName() throws Exception {
-        AndroidManifest appManifest = newConfigWith("<application android:name=\"org.robolectric.TestApplication\"/>");
-        Application application = new DefaultTestLifecycle().createApplication(null, appManifest);
-        shadowOf(application).bind(appManifest, null);
-
-        assertEquals("org.robolectric.TestApplication",
-                application.getPackageManager().getApplicationInfo("org.robolectric", 0).name);
+        assertThat(Robolectric.application.getPackageManager().getApplicationInfo("org.robolectric", 0).name)
+                .isEqualTo("org.robolectric.TestApplication");
     }
 
     @Test
@@ -335,6 +342,17 @@ public class ApplicationTest {
         Resources res = application.getResources();
         shadowOf(application).resetResources();
         assertFalse(res == application.getResources());
+    }
+
+    @Test
+    public void checkPermission_shouldTrackGrantedAndDeniedPermissions() throws Exception {
+        Application application = new DefaultTestLifecycle().createApplication(null, newConfigWith("com.wacka.wa", ""));
+        shadowOf(application).grantPermissions("foo", "bar");
+        shadowOf(application).denyPermissions("foo", "qux");
+        assertThat(application.checkPermission("foo", -1, -1)).isEqualTo(PERMISSION_DENIED);
+        assertThat(application.checkPermission("bar", -1, -1)).isEqualTo(PERMISSION_GRANTED);
+        assertThat(application.checkPermission("baz", -1, -1)).isEqualTo(PERMISSION_DENIED);
+        assertThat(application.checkPermission("qux", -1, -1)).isEqualTo(PERMISSION_DENIED);
     }
 
     /////////////////////////////

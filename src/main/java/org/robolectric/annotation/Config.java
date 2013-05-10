@@ -10,6 +10,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Properties;
 
 /**
  * Indicate that robolectric should look for values that is specific by those qualifiers
@@ -18,19 +19,38 @@ import java.util.Arrays;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE, ElementType.METHOD})
 public @interface Config {
+    @SuppressWarnings("UnusedDeclaration")
+    public static final String NONE = "--none";
+    public static final String DEFAULT = "--default";
 
     /**
      * The Android SDK level to emulate. If not specified, Robolectric defaults to the targetSdkVersion in your app's manifest.
+     *
+     * Not yet supported as of Robolectric 2.0.
      */
     int emulateSdk() default -1;
 
     /**
+     * The Android manifest file to load; Robolectric will look relative to the current directory.
+     * Resources and assets will be loaded relative to the manifest.
+     *
+     * If not specified, Robolectric defaults to {@code AndroidManifest.xml}.
+     *
+     * If your project has no manifest or resources, use {@link Config#NONE}.
+     */
+    String manifest() default DEFAULT;
+
+    /**
      * Qualifiers for the resource resolution, such as "fr-normal-port-hdpi".
+     *
+     * @see <a href="http://developer.android.com/guide/topics/resources/providing-resources.html">Providing Resources</a> in the Android Developer docs for more information.
      */
     String qualifiers() default "";
 
     /**
      * The Android SDK level to report in Build.VERSION.SDK_INT.
+     *
+     * @see <a href="http://en.wikipedia.org/wiki/Android_version_history">Android Version History</a>.
      */
     int reportSdk() default -1;
 
@@ -41,12 +61,38 @@ public @interface Config {
 
     public class Implementation implements Config {
         private final int emulateSdk;
+        private final String manifest;
         private final String qualifiers;
         private final int reportSdk;
         private final Class<?>[] shadows;
 
-        public Implementation(int emulateSdk, String qualifiers, int reportSdk, Class<?>[] shadows) {
+        public static Config fromProperties(Properties configProperties) {
+            if (configProperties == null || configProperties.size() == 0) return null;
+            return new Implementation(
+                    Integer.parseInt(configProperties.getProperty("emulateSdk", "-1")),
+                    configProperties.getProperty("manifest", DEFAULT),
+                    configProperties.getProperty("qualifiers", ""),
+                    Integer.parseInt(configProperties.getProperty("reportSdk", "-1")),
+                    parseClasses(configProperties.getProperty("shadows", ""))
+            );
+        }
+
+        private static Class<?>[] parseClasses(String classList) {
+            String[] classNames = classList.split("[, ]+");
+            Class[] classes = new Class[classNames.length];
+            for (int i = 0; i < classNames.length; i++) {
+                try {
+                    classes[i] = Implementation.class.getClassLoader().loadClass(classNames[i]);
+                } catch (ClassNotFoundException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            return classes;
+        }
+
+        public Implementation(int emulateSdk, String manifest, String qualifiers, int reportSdk, Class<?>[] shadows) {
             this.emulateSdk = emulateSdk;
+            this.manifest = manifest;
             this.qualifiers = qualifiers;
             this.reportSdk = reportSdk;
             this.shadows = shadows;
@@ -54,6 +100,7 @@ public @interface Config {
 
         public Implementation(Config baseConfig, Config overlayConfig) {
             this.emulateSdk = pick(baseConfig.emulateSdk(), overlayConfig.emulateSdk(), -1);
+            this.manifest = pick(baseConfig.manifest(), overlayConfig.manifest(), DEFAULT);
             this.qualifiers = pick(baseConfig.qualifiers(), overlayConfig.qualifiers(), "");
             this.reportSdk = pick(baseConfig.reportSdk(), overlayConfig.reportSdk(), -1);
             ArrayList<Class<?>> shadows = new ArrayList<Class<?>>();
@@ -68,6 +115,10 @@ public @interface Config {
 
         @Override public int emulateSdk() {
             return emulateSdk;
+        }
+
+        @Override public String manifest() {
+            return manifest;
         }
 
         @Override public String qualifiers() {
@@ -109,6 +160,5 @@ public @interface Config {
             result = 31 * result + Arrays.hashCode(shadows);
             return result;
         }
-
     }
 }

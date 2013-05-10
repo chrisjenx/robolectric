@@ -1,36 +1,24 @@
 package org.robolectric.res;
 
-import android.view.View;
+import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Document;
 
 import java.io.InputStream;
 
 public interface ResourceLoader {
-    String ANDROID_NS = "http://schemas.android.com/apk/res/android";
+    String ANDROID_NS = Attribute.ANDROID_RES_NS_PREFIX + "android";
 
     String getNameForId(int id);
 
-    String getColorValue(ResName resName, String qualifiers);
+    TypedResource getValue(@NotNull ResName resName, String qualifiers);
 
-    String getStringValue(ResName resName, String qualifiers);
-
-    String getPluralStringValue(ResName resName, int quantity, String qualifiers);
-
-    String getDimenValue(ResName resName, String qualifiers);
-
-    int getIntegerValue(ResName resName, String qualifiers);
-
-    boolean getBooleanValue(ResName resName, String qualifiers);
+    Plural getPlural(ResName resName, int quantity, String qualifiers);
 
     Document getXml(ResName resName, String qualifiers);
 
     DrawableNode getDrawableNode(ResName resName, String qualifiers);
 
     InputStream getRawValue(ResName resName);
-
-    String[] getStringArrayValue(ResName resName, String qualifiers);
-
-    int[] getIntegerArrayValue(ResName resName, String qualifiers);
 
     PreferenceNode getPreferenceNode(ResName resName, String qualifiers);
 
@@ -40,7 +28,5 @@ public interface ResourceLoader {
 
     MenuNode getMenuNode(ResName resName, String qualifiers);
 
-    boolean hasAttributeFor(Class<? extends View> viewClass, String namespace, String attribute);
-
-    String convertValueToEnum(Class<? extends View> viewClass, String namespace, String attribute, String part);
+    boolean providesFor(String namespace);
 }

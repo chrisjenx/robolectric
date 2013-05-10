@@ -1,14 +1,14 @@
 package org.robolectric.shadows;
 
 import android.widget.RadioGroup;
-import org.robolectric.internal.Implementation;
-import org.robolectric.internal.Implements;
-import org.robolectric.internal.RealObject;
+import org.robolectric.annotation.Implementation;
+import org.robolectric.annotation.Implements;
+import org.robolectric.annotation.RealObject;
 
 import static android.widget.RadioGroup.OnCheckedChangeListener;
 
 @SuppressWarnings({"UnusedDeclaration"})
-@Implements(value = RadioGroup.class, inheritImplementationMethods = true)
+@Implements(RadioGroup.class)
 public class ShadowRadioGroup extends ShadowLinearLayout {
     @RealObject
     protected RadioGroup realGroup;

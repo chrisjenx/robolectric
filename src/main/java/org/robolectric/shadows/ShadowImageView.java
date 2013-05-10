@@ -6,25 +6,16 @@ import android.graphics.Matrix;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.widget.ImageView;
-import org.robolectric.internal.Implementation;
-import org.robolectric.internal.Implements;
+import org.robolectric.annotation.Implementation;
+import org.robolectric.annotation.Implements;
 
-import static org.robolectric.Robolectric.shadowOf;
-
-@Implements(value = ImageView.class, inheritImplementationMethods = true)
+@Implements(value = ImageView.class)
 public class ShadowImageView extends ShadowView {
     private Drawable imageDrawable;
-    private int resourceId;
     private Bitmap imageBitmap;
     private ImageView.ScaleType scaleType;
     private Matrix matrix;
     private int imageLevel;
-
-    @Override
-    public void applyAttributes() {
-        super.applyAttributes();
-        applyImageAttribute();
-    }
 
     @Implementation
     public void setImageBitmap(Bitmap imageBitmap) {
@@ -44,7 +35,6 @@ public class ShadowImageView extends ShadowView {
 
     @Implementation
     public void setImageResource(int resId) {
-        this.resourceId = resId;
         setImageDrawable(buildDrawable(resId));
     }
 
@@ -63,44 +53,28 @@ public class ShadowImageView extends ShadowView {
         return imageDrawable;
     }
 
-    /**
-     * @return the image drawable
-     * @deprecated Use android.widget.ImageView#getDrawable() instead.
-     */
-    @Deprecated
-    public Drawable getImageDrawable() {
-        return imageDrawable;
-    }
-
-    @Deprecated
-    public int getResourceId() {
-        return resourceId;
-    }
-
     @Implementation
     public void setImageMatrix(Matrix matrix) {
         this.matrix = new Matrix(matrix);
     }
 
     @Implementation
+    public Matrix getImageMatrix() {
+        return matrix;
+    }
+
+    @Implementation
     public void draw(Canvas canvas) {
-        if (matrix != null) {
-            canvas.translate(shadowOf(matrix).getTransX(), shadowOf(matrix)
-                    .getTransY());
-            canvas.scale(shadowOf(matrix).getScaleX(), shadowOf(matrix)
-                    .getScaleY());
-        }
         if (imageDrawable != null) {
             imageDrawable.draw(canvas);
         }
     }
 
     private void applyImageAttribute() {
-        String source = attributeSet.getAttributeValue("android", "src");
+        String source = attributeSet.getAttributeValue(ANDROID_NS, "src");
         if (source != null) {
             if (source.startsWith("@drawable/")) {
-                setImageResource(attributeSet.getAttributeResourceValue(
-                        "android", "src", 0));
+                setImageResource(attributeSet.getAttributeResourceValue(ANDROID_NS, "src", 0));
             }
         }
     }

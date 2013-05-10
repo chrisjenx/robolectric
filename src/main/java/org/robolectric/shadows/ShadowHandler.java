@@ -4,9 +4,9 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import org.robolectric.Robolectric;
-import org.robolectric.internal.Implementation;
-import org.robolectric.internal.Implements;
-import org.robolectric.internal.RealObject;
+import org.robolectric.annotation.Implementation;
+import org.robolectric.annotation.Implements;
+import org.robolectric.annotation.RealObject;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -146,6 +146,13 @@ public class ShadowHandler {
                 }
             }
         });
+        return true;
+    }
+
+    @Implementation
+    public boolean sendMessageAtTime(Message msg, long uptimeMillis) {
+        long delay = uptimeMillis - System.currentTimeMillis();
+        sendMessageDelayed(msg, delay);
         return true;
     }
 

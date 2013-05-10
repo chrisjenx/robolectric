@@ -5,9 +5,9 @@ import android.graphics.Paint;
 import android.graphics.PathEffect;
 import android.graphics.Shader;
 import android.graphics.Typeface;
-import org.robolectric.internal.Implementation;
-import org.robolectric.internal.Implements;
-import org.robolectric.internal.RealObject;
+import org.robolectric.annotation.Implementation;
+import org.robolectric.annotation.Implements;
+import org.robolectric.annotation.RealObject;
 
 /**
  * Shadow of {@code Paint} that has some extra accessors so that tests can tell whether a {@code Paint} object was
@@ -39,15 +39,15 @@ public class ShadowPaint {
     private float textSize;
 
     public void __constructor__(int flags) {
-    	this.flags = flags;
-    	antiAlias = ( flags & Paint.ANTI_ALIAS_FLAG ) == Paint.ANTI_ALIAS_FLAG;   
+        this.flags = flags;
+        antiAlias = (flags & Paint.ANTI_ALIAS_FLAG) == Paint.ANTI_ALIAS_FLAG;
     }
-    
+
     @Implementation
     public int getFlags() {
-    	return flags;
+        return flags;
     }
-    
+
     @Implementation
     public Shader setShader(Shader shader) {
         this.shader = shader;
@@ -222,25 +222,25 @@ public class ShadowPaint {
         this.filter = filter;
         return filter;
     }
-    
+
     @Implementation
     public void setAntiAlias(boolean antiAlias) {
-    	this.antiAlias = antiAlias;
+        this.antiAlias = antiAlias;
     }
-    
+
     @Implementation
     public void setDither(boolean dither) {
-    	this.dither = dither;
+        this.dither = dither;
     }
-    
+
     @Implementation
     public final boolean isDither() {
-    	return dither;
+        return dither;
     }
-    
+
     @Implementation
     public final boolean isAntiAlias() {
-    	return antiAlias;
+        return antiAlias;
     }
 
     @Implementation

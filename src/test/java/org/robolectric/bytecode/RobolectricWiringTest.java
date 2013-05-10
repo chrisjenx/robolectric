@@ -5,8 +5,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.robolectric.Robolectric;
 import org.robolectric.internal.HiddenApi;
-import org.robolectric.internal.Implementation;
-import org.robolectric.internal.Implements;
+import org.robolectric.annotation.Implementation;
+import org.robolectric.annotation.Implements;
 import org.robolectric.util.Join;
 
 import java.lang.annotation.Annotation;
@@ -71,7 +71,7 @@ public class RobolectricWiringTest {
             }
             if (implementedMember == null) {
                 if (!isAnnotatedHiddenApi(shadowMethod)) {
-                    mismatches.add(shadowMethod.toGenericString() + " doesn't match a real method");
+                    mismatches.add(shadowMethod.toGenericString() + " doesn't match a real method (maybe it's a @HiddenApi?)");
                 }
             } else if (staticMismatch(shadowMethod, implementedMember)) {
                 mismatches.add(shadowMethod.toGenericString() + " doesn't match the staticness of the real method");

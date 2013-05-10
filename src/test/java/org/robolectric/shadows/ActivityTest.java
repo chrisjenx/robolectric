@@ -10,6 +10,7 @@ import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteCursor;
+import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.KeyEvent;
@@ -361,7 +362,7 @@ public class ActivityTest {
         assertEquals("Hello", string);
 
         int id = activity.getResources().getIdentifier("hello", "string", "org.robolectric");
-        assertTrue(id > 0);
+        assertThat(id).isEqualTo(R.string.hello);
 
         String hello = activity.getResources().getString(id);
         assertEquals("Hello", hello);
@@ -372,7 +373,7 @@ public class ActivityTest {
         Activity activity = new Activity();
 
         int id = activity.getResources().getIdentifier("just_alot_of_crap", "string", "org.robolectric");
-        assertTrue(id == 0);
+        assertThat(id).isEqualTo(0);
     }
 
     @Test
@@ -541,6 +542,13 @@ public class ActivityTest {
 
         assertThat(shadow.getManagedCursors()).isNotNull();
         assertThat(shadow.getManagedCursors().size()).isEqualTo(0);
+    }
+
+    @Test
+    public void setVolumeControlStream_setsTheSpecifiedStreamType() {
+        TestActivity activity = new TestActivity();
+        activity.setVolumeControlStream(AudioManager.STREAM_ALARM);
+        assertThat(activity.getVolumeControlStream()).isEqualTo(AudioManager.STREAM_ALARM);
     }
 
     private static class TestActivity extends Activity {
@@ -771,7 +779,7 @@ public class ActivityTest {
         @Override
         protected Dialog onCreateDialog(int id) {
             onCreateDialogWasCalled = true;
-            return new Dialog(null);
+            return new Dialog(this);
         }
     }
 }

@@ -2,8 +2,8 @@ package org.robolectric.shadows;
 
 import android.graphics.Color;
 import org.robolectric.bytecode.RobolectricInternals;
-import org.robolectric.internal.Implementation;
-import org.robolectric.internal.Implements;
+import org.robolectric.annotation.Implementation;
+import org.robolectric.annotation.Implements;
 
 import static org.fest.reflect.core.Reflection.method;
 
@@ -30,10 +30,14 @@ public class ShadowColor {
             }
             colorString = buf.toString();
         }
-        return method(RobolectricInternals.directMethodName(Color.class.getName(), "parseColor"))
-                .withReturnType(int.class)
-                .withParameterTypes(String.class)
-                .in(Color.class)
-                .invoke(colorString);
+        try {
+            return method(RobolectricInternals.directMethodName(Color.class.getName(), "parseColor"))
+                    .withReturnType(int.class)
+                    .withParameterTypes(String.class)
+                    .in(Color.class)
+                    .invoke(colorString);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Can't parse value from color \"" + colorString + "\"", e);
+        }
     }
 }

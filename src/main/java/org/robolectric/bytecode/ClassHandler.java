@@ -7,11 +7,11 @@ public interface ClassHandler {
 
     Plan methodInvoked(String signature, boolean isStatic, Class<?> theClass);
 
-    Object intercept(String signature, Object instance, Object[] paramTypes, Class theClass) throws Throwable;
+    Object intercept(String signature, Object instance, Object[] params, Class theClass) throws Throwable;
 
     <T extends Throwable> T stripStackTrace(T throwable);
 
     public interface Plan {
-        Object run(Object instance, Object[] params) throws Throwable;
+        Object run(Object instance, Object roboData, Object[] params) throws Throwable;
     }
 }
