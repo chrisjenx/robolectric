@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.robolectric.bytecode;
+package org.robolectric.impl;
 
 /**
  * Where the HTTP client should look for a response.
@@ -23,23 +23,23 @@ package org.robolectric.bytecode;
  */
 public enum ResponseSource {
 
-    /**
-     * Return the response from the cache immediately.
-     */
-    CACHE,
+  /**
+   * Return the response from the cache immediately.
+   */
+  CACHE,
 
-    /**
-     * Make a conditional request to the host, returning the cache response if
-     * the cache is valid and the network response otherwise.
-     */
-    CONDITIONAL_CACHE,
+  /**
+   * Make a conditional request to the host, returning the cache response if
+   * the cache is valid and the network response otherwise.
+   */
+  CONDITIONAL_CACHE,
 
-    /**
-     * Return the response from the network.
-     */
-    NETWORK;
+  /**
+   * Return the response from the network.
+   */
+  NETWORK;
 
-    public boolean requiresConnection() {
-        return this == CONDITIONAL_CACHE || this == NETWORK;
-    }
+  public boolean requiresConnection() {
+    return this == CONDITIONAL_CACHE || this == NETWORK;
+  }
 }
