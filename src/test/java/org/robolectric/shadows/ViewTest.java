@@ -18,6 +18,7 @@ import android.view.ViewTreeObserver;
 import android.view.animation.Animation;
 import android.widget.LinearLayout;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.R;
@@ -686,7 +687,8 @@ public class ViewTest {
     transcript.assertEventsSoFar("child detached", "another child detached", "parent detached");
   }
 
-  // todo looks like this is flaky...
+  // todo looks like this is flaky... agreed
+    @Ignore
   @Test public void removeAllViews_shouldCallOnAttachedToAndDetachedFromWindow() throws Exception {
     MyView parent = new MyView("parent", transcript);
     new RoboWindow(application).setContentView(parent);
