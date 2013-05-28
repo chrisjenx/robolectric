@@ -136,16 +136,17 @@ public class Setup {
         new MethodRef(LinkedHashMap.class, "eldest"),
         new MethodRef(System.class, "loadLibrary"),
         new MethodRef("android.os.StrictMode", "trackActivity"),
+        new MethodRef("android.os.StrictMode", "incrementExpectedActivityCount"),
         new MethodRef("com.android.i18n.phonenumbers.Phonenumber$PhoneNumber", "*"),
         new MethodRef("com.android.i18n.phonenumbers.PhoneNumberUtil", "*"),
         new MethodRef("dalvik.system.CloseGuard", "get"),
+        new MethodRef("dalvik.system.BlockGuard", "*"),
         new MethodRef("java.lang.AutoCloseable", "*"),
         new MethodRef("android.util.LocaleUtil", "getLayoutDirectionFromLocale"),
         new MethodRef("com.android.internal.policy.PolicyManager", "*"),
-        new MethodRef("android.view.CompatibilityInfoHolder", "*"),
-        new MethodRef("android.content.res.CompatibilityInfo", "*"),
         new MethodRef("android.view.FallbackEventHandler", "*"),
-        new MethodRef("android.view.IWindowSession", "*")
+        new MethodRef("android.view.IWindowSession", "*"),
+        new MethodRef("java.lang.System", "nanoTime")
     )));
   }
 

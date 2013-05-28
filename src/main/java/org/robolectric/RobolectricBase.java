@@ -1,5 +1,8 @@
 package org.robolectric;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import org.robolectric.shadows.ShadowAbsListView;
 import org.robolectric.shadows.ShadowAbsSeekBar;
 import org.robolectric.shadows.ShadowAbsSpinner;
@@ -60,10 +63,10 @@ import org.robolectric.shadows.ShadowConfiguration;
 import org.robolectric.shadows.ShadowConnectivityManager;
 import org.robolectric.shadows.ShadowContentObserver;
 import org.robolectric.shadows.ShadowContentProvider;
+import org.robolectric.shadows.ShadowContentProviderOperation;
 import org.robolectric.shadows.ShadowContentProviderResult;
 import org.robolectric.shadows.ShadowContentResolver;
 import org.robolectric.shadows.ShadowContentUris;
-import org.robolectric.shadows.ShadowContentValues;
 import org.robolectric.shadows.ShadowContext;
 import org.robolectric.shadows.ShadowContextImpl;
 import org.robolectric.shadows.ShadowContextThemeWrapper;
@@ -120,7 +123,6 @@ import org.robolectric.shadows.ShadowKeyEvent;
 import org.robolectric.shadows.ShadowKeyguardManager;
 import org.robolectric.shadows.ShadowLayerDrawable;
 import org.robolectric.shadows.ShadowLayoutAnimationController;
-import org.robolectric.shadows.ShadowLayoutInflater;
 import org.robolectric.shadows.ShadowLinearGradient;
 import org.robolectric.shadows.ShadowLinearLayout;
 import org.robolectric.shadows.ShadowLinkMovementMethod;
@@ -145,7 +147,6 @@ import org.robolectric.shadows.ShadowMediaScannerConnection;
 import org.robolectric.shadows.ShadowMediaStore;
 import org.robolectric.shadows.ShadowMenuInflater;
 import org.robolectric.shadows.ShadowMergeCursor;
-import org.robolectric.shadows.ShadowMessage;
 import org.robolectric.shadows.ShadowMessenger;
 import org.robolectric.shadows.ShadowMimeTypeMap;
 import org.robolectric.shadows.ShadowMockPackageManager;
@@ -254,10 +255,6 @@ import org.robolectric.shadows.ShadowWifiManager;
 import org.robolectric.shadows.ShadowWindow;
 import org.robolectric.shadows.ShadowZoomButtonsController;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
 public class RobolectricBase {
   static final List<Class<?>> DEFAULT_SHADOW_CLASSES = Collections.unmodifiableList(Arrays.asList(
       ShadowAbsListView.class,
@@ -324,12 +321,13 @@ public class RobolectricBase {
       ShadowConnectivityManager.class,
       ShadowContentObserver.class,
       ShadowContentProvider.class,
+      ShadowContentProviderOperation.class,
       ShadowContentProviderResult.class,
       ShadowContentResolver.class,
       ShadowContentUris.class,
-      ShadowContentValues.class,
       ShadowContext.class,
       ShadowContextImpl.class,
+      ShadowContextImpl.ShadowServiceFetcher.class,
       ShadowContextWrapper.class,
       ShadowContextThemeWrapper.class,
       ShadowCookieManager.class,
@@ -388,7 +386,6 @@ public class RobolectricBase {
       ShadowKeyguardManager.class,
       ShadowKeyguardManager.ShadowKeyguardLock.class,
       ShadowLayerDrawable.class,
-      ShadowLayoutInflater.class,
       ShadowViewGroup.ShadowLayoutParams.class,
       ShadowLinearGradient.class,
       ShadowLinearLayout.class,
@@ -414,7 +411,6 @@ public class RobolectricBase {
       ShadowMediaStore.ShadowImages.ShadowMedia.class,
       ShadowMenuInflater.class,
       ShadowMergeCursor.class,
-      ShadowMessage.class,
       ShadowMessenger.class,
       ShadowMimeTypeMap.class,
       ShadowMockPackageManager.class,

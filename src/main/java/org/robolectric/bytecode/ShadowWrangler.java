@@ -1,11 +1,6 @@
 package org.robolectric.bytecode;
 
 import android.view.ContextThemeWrapper;
-import org.robolectric.annotation.Implements;
-import org.robolectric.annotation.RealObject;
-import org.robolectric.shadows.ShadowWindow;
-import org.robolectric.util.Function;
-
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -17,6 +12,10 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.robolectric.annotation.Implements;
+import org.robolectric.annotation.RealObject;
+import org.robolectric.shadows.ShadowWindow;
+import org.robolectric.util.Function;
 
 import static org.fest.reflect.core.Reflection.method;
 import static org.fest.reflect.core.Reflection.type;
@@ -35,7 +34,7 @@ public class ShadowWrangler implements ClassHandler {
   };
   public static final Plan CALL_REAL_CODE_PLAN = null;
   private static final boolean STRIP_SHADOW_STACK_TRACES = true;
-  private static final ShadowConfig NO_SHADOW_CONFIG = new ShadowConfig(Object.class.getName(), true, false);
+  private static final ShadowConfig NO_SHADOW_CONFIG = new ShadowConfig(Object.class.getName(), true, false, false);
   public boolean debug = false;
 
   private final ShadowMap shadowMap;
@@ -97,7 +96,7 @@ public class ShadowWrangler implements ClassHandler {
       clazz = clazz.getDeclaringClass();
       ShadowConfig outerConfig = getShadowConfig(clazz);
       if (outerConfig != null && outerConfig.callThroughByDefault) {
-        shadowConfig = new ShadowConfig(Object.class.getName(), true, false);
+        shadowConfig = new ShadowConfig(Object.class.getName(), true, false, false);
       }
     }
 
@@ -108,7 +107,16 @@ public class ShadowWrangler implements ClassHandler {
       try {
         final ClassLoader classLoader = theClass.getClassLoader();
         final Class<?> shadowClass = classLoader.loadClass(shadowConfig.shadowClassName);
-        final Method shadowMethod = getShadowedMethod(invocationProfile, classLoader, shadowClass);
+        Method shadowMethod = getShadowedMethod(invocationProfile, classLoader, shadowClass);
+
+        if (shadowMethod == null && shadowConfig.looseSignatures) {
+          Class[] paramTypes = new Class[invocationProfile.paramTypes.length];
+          for (int i = 0; i < paramTypes.length; i++) {
+            paramTypes[i] = Object.class;
+          }
+          shadowMethod = getMethod(shadowClass, invocationProfile.methodName, paramTypes);
+        }
+
         if (shadowMethod == null) {
           if (debug) System.out.println("[DEBUG] no shadow for " + signature + " found on " + shadowConfig.shadowClassName + "; " + describePlan(strict(invocationProfile)));
           return shadowConfig.callThroughByDefault ? CALL_REAL_CODE_PLAN : strict(invocationProfile) ? CALL_REAL_CODE_PLAN : DO_NOTHING_PLAN;
@@ -157,9 +165,14 @@ public class ShadowWrangler implements ClassHandler {
     return isAndroidSupport(invocationProfile) || invocationProfile.isDeclaredOnObject();
   }
 
-  private Method getShadowedMethod(InvocationProfile invocationProfile, ClassLoader classLoader, Class<?> shadowClass) throws ClassNotFoundException {
+  private Method getShadowedMethod(InvocationProfile invocationProfile, ClassLoader classLoader,
+      Class<?> shadowClass) throws ClassNotFoundException {
+    return getMethod(shadowClass, invocationProfile.methodName, invocationProfile.getParamClasses(classLoader));
+  }
+
+  private Method getMethod(Class<?> shadowClass, String methodName, Class<?>[] paramClasses) throws ClassNotFoundException {
     try {
-      return shadowClass.getMethod(invocationProfile.methodName, invocationProfile.getParamClasses(classLoader));
+      return shadowClass.getMethod(methodName, paramClasses);
     } catch (NoSuchMethodException e) {
       return null;
     }
@@ -224,6 +237,16 @@ public class ShadowWrangler implements ClassHandler {
               .withParameterTypes(activityClass)
               .in(shadowWindowClass)
               .invoke(context);
+        }
+      };
+    } else if (methodSignature.matches("java.lang.System", "nanoTime")) {
+      return new Function<Object, Object>() {
+        @Override public Object call(Class<?> theClass, Object value, Object[] params) {
+          ClassLoader cl = theClass.getClassLoader();
+          Class<?> shadowSystemClockClass = type("org.robolectric.shadows.ShadowSystemClock").withClassLoader(cl).load();
+          return method("nanoTime")
+              .in(shadowSystemClockClass)
+              .invoke();
         }
       };
     }
@@ -391,13 +414,6 @@ public class ShadowWrangler implements ClassHandler {
       throw new NullPointerException("can't get a shadow for null");
     }
     return method(AsmInstrumentingClassLoader.GET_ROBO_DATA_METHOD_NAME).withReturnType(Object.class).in(instance).invoke();
-//
-//        Field field = RobolectricInternals.getShadowField(instance);
-//        Object shadow = readField(instance, field);
-//        if (shadow == null) {
-//            shadow = shadowFor(instance);
-//        }
-//        return shadow;
   }
 
   private void writeField(Object target, Object value, Field realObjectField) {
@@ -436,7 +452,6 @@ public class ShadowWrangler implements ClassHandler {
       //noinspection UnnecessaryLocalVariable
       Object shadow = roboData;
       try {
-//                System.out.println("invoke " + shadowMethod);
         return shadowMethod.invoke(shadow, params);
       } catch (IllegalArgumentException e) {
         throw new IllegalArgumentException("attempted to invoke " + shadowMethod

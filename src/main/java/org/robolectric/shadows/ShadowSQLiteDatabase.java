@@ -18,12 +18,14 @@ import org.robolectric.annotation.RealObject;
 import org.robolectric.util.DatabaseConfig;
 import org.robolectric.util.SQLite.*;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -37,7 +39,7 @@ import static org.robolectric.util.SQLite.*;
 
 /**
  * Shadow for {@code SQLiteDatabase} that simulates the movement of a {@code Cursor} through database tables.
- * Implemented as a wrapper around an embedded SQL database, accessed via JDBC.  The JDBC connection is
+ * Implemented as a wrapper around an embedded SQL database, accessed via JDBC. The JDBC connection is
  * made available to test cases for use in fixture setup and assertions.
  */
 @Implements(value = SQLiteDatabase.class, inheritImplementationMethods = true)
@@ -52,6 +54,8 @@ public class ShadowSQLiteDatabase extends ShadowSQLiteClosable {
 
   };
 
+  private static HashMap<String, SQLiteDatabase> dbMap = new HashMap<String, SQLiteDatabase>();
+
   @RealObject  SQLiteDatabase realSQLiteDatabase;
   private final ReentrantLock mLock = new ReentrantLock(true);
   private boolean mLockingEnabled = true;
@@ -61,10 +65,10 @@ public class ShadowSQLiteDatabase extends ShadowSQLiteClosable {
   private Set<Cursor> cursors = new HashSet<Cursor>();
   private List<String> querySql = new ArrayList<String>();
 
-  private boolean isOpen; // never close connections bc that deletes the in-memory db
+  private boolean isOpen, isFileConnection;
   private String path;
   private final static Object connectionLock = new Object();
-  private static Connection connection;
+  private Connection connection;
 
   @Implementation
   public void setLockingEnabled(boolean lockingEnabled) {
@@ -74,6 +78,12 @@ public class ShadowSQLiteDatabase extends ShadowSQLiteClosable {
   public void lock() {
     if (!mLockingEnabled) return;
     mLock.lock();
+  }
+  
+  @Implementation
+  public boolean isDbLockedByCurrentThread(){
+    if(!mLockingEnabled) return true;
+    return mLock.isHeldByCurrentThread();
   }
 
   public void unlock() {
@@ -92,23 +102,32 @@ public class ShadowSQLiteDatabase extends ShadowSQLiteClosable {
 
   @Implementation
   public static SQLiteDatabase openDatabase(String path, SQLiteDatabase.CursorFactory factory, int flags) {
-    SQLiteDatabase db = newInstanceOf(SQLiteDatabase.class);
-    shadowOf(db).init(path);
+    if (path == null) throw new IllegalArgumentException("path cannot be null");
+
+    SQLiteDatabase db = dbMap.get(path);
+    if (db == null) {
+      db = newInstanceOf(SQLiteDatabase.class);
+      shadowOf(db).init(path);
+      dbMap.put(path, db);
+    }
     return db;
   }
 
   public static void reset() {
     try {
       synchronized (connectionLock) {
-        if (connection != null) {
-          connection.close();
+        for (SQLiteDatabase db : dbMap.values()) {
+          ShadowSQLiteDatabase shadowDb = shadowOf(db);
+          if (shadowDb.connection != null) {
+              shadowDb.connection.close();
+          }
+          shadowDb.connection = null;
         }
-        connection = null;
+        dbMap.clear();
       }
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
-    ShadowSQLiteOpenHelper.reset();
   }
 
   /**
@@ -120,7 +139,12 @@ public class ShadowSQLiteDatabase extends ShadowSQLiteClosable {
   public Connection getConnection() {
     synchronized (connectionLock) {
       if (connection == null) {
-        connection = DatabaseConfig.getMemoryConnection();
+        if (new File(path).isFile()) {
+          connection = DatabaseConfig.getFileConnection(new File(path));
+          isFileConnection = true;
+        } else {
+          connection = DatabaseConfig.getMemoryConnection();
+        }
       }
     }
     return connection;
@@ -258,8 +282,7 @@ public class ShadowSQLiteDatabase extends ShadowSQLiteClosable {
     }
 
     try {
-      String scrubbedSql = DatabaseConfig.getScrubSQL(sql);
-      getConnection().createStatement().execute(scrubbedSql);
+      getConnection().createStatement().execute(sql);
     } catch (java.sql.SQLException e) {
       android.database.SQLException ase = new android.database.SQLException();
       ase.initCause(e);
@@ -272,12 +295,10 @@ public class ShadowSQLiteDatabase extends ShadowSQLiteClosable {
     if (bindArgs == null) {
       throw new IllegalArgumentException("Empty bindArgs");
     }
-    String scrubbedSql = DatabaseConfig.getScrubSQL(sql);
-
 
     SQLiteStatement statement = null;
       try {
-        statement = compileStatement(scrubbedSql);
+        statement = compileStatement(sql);
       if (bindArgs != null) {
         int numArgs = bindArgs.length;
         for (int i = 0; i < numArgs; i++) {
@@ -341,6 +362,14 @@ public class ShadowSQLiteDatabase extends ShadowSQLiteClosable {
   @Implementation
   public void close() {
     isOpen = false;
+    dbMap.remove(path);
+    // never close in-memory connections bc that deletes the in-memory db
+    if (isFileConnection) {
+      try {
+        connection.close();
+      } catch (SQLException ignored) {
+      }
+    }
   }
 
   @Implementation
@@ -409,10 +438,9 @@ public class ShadowSQLiteDatabase extends ShadowSQLiteClosable {
   @Implementation
   public SQLiteStatement compileStatement(String sql) throws SQLException {
     lock();
-    String scrubbedSql = DatabaseConfig.getScrubSQL(sql);
     try {
       SQLiteStatement stmt = Robolectric.newInstanceOf(SQLiteStatement.class);
-      Robolectric.shadowOf(stmt).init(realSQLiteDatabase, scrubbedSql);
+      Robolectric.shadowOf(stmt).init(realSQLiteDatabase, sql);
       return stmt;
     } catch (Exception e){
       throw new RuntimeException(e);

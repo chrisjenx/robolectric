@@ -3,7 +3,13 @@ package org.robolectric.shadows;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.content.res.Resources;
+import android.content.res.XmlResourceParser;
 import android.util.TypedValue;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.jetbrains.annotations.NotNull;
 import org.robolectric.AndroidManifest;
 import org.robolectric.annotation.Implementation;
@@ -20,13 +26,7 @@ import org.robolectric.res.ResourceLoader;
 import org.robolectric.res.Style;
 import org.robolectric.res.StyleData;
 import org.robolectric.res.TypedResource;
-import org.robolectric.res.ViewNode;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import org.robolectric.res.builder.XmlFileBuilder;
 
 import static org.robolectric.Robolectric.shadowOf;
 
@@ -169,6 +169,16 @@ public final class ShadowAssetManager {
     throw new UnsupportedOperationException();
   }
 
+  @Implementation
+  public final XmlResourceParser openXmlResourceParser(int cookie, String fileName) throws IOException {
+    return XmlFileBuilder.getXmlResourceParser(fileName, "fixme", null);
+  }
+
+  @HiddenApi @Implementation
+  public int addAssetPath(String path) {
+    return 1;
+  }
+
   @HiddenApi @Implementation
   public boolean isUpToDate() {
     return true;
@@ -263,8 +273,7 @@ public final class ShadowAssetManager {
 
     // todo: gross. this is so resources.getString(R.layout.foo) works for ABS.
     if (value == null && "layout".equals(resName.type)) {
-      ViewNode viewNode = resourceLoader.getLayoutViewNode(resName, qualifiers);
-      return new TypedResource<String>(viewNode.getXmlContext().getXmlFile().getPath(), ResType.CHAR_SEQUENCE);
+      throw new UnsupportedOperationException("ugh, this doesn't work still?");
     }
 
     return value;

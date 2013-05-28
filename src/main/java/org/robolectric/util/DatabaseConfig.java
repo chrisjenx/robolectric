@@ -1,5 +1,6 @@
 package org.robolectric.util;
 
+import java.io.File;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
@@ -64,23 +65,23 @@ public class DatabaseConfig {
    * @return Connection to In Memory Database.
    */
   public static Connection getMemoryConnection() {
+    if (isMapNull()) throw new NullDatabaseMapException("No database map set!");
+    return getConnection(dbMap.getMemoryConnectionString());
+  }
+
+  public static Connection getFileConnection(File file) {
+    if (isMapNull()) throw new NullDatabaseMapException("No database map set!");
+    return getConnection(dbMap.getConnectionString(file));
+  }
+
+  private static Connection getConnection(String connection) {
+    if (isMapNull()) throw new NullDatabaseMapException("No database map set!");
     if (!isMapLoaded()) LoadSQLiteDriver();
     try {
-      return DriverManager.getConnection(dbMap.getConnectionString());
+      return DriverManager.getConnection(connection);
     } catch (SQLException e) {
       throw new CannotLoadDatabaseMapDriverException("Error in DatabaseConfig, could not retrieve connection to in memory database.", e);
     }
-  }
-
-  /**
-   * Makes any edits necessary in the SQL string for it to be compatible with the database in use.
-   *
-   * @return
-   * @throws SQLException
-   */
-  public static String getScrubSQL(String sql) throws SQLException {
-    if (isMapNull()) throw new NullDatabaseMapException("No database map set!");
-    return dbMap.getScrubSQL(sql);
   }
 
   public static String getSelectLastInsertIdentity() {
@@ -96,9 +97,9 @@ public class DatabaseConfig {
   public interface DatabaseMap {
     String getDriverClassName();
 
-    String getConnectionString();
+    String getMemoryConnectionString();
 
-    String getScrubSQL(String sql) throws SQLException;
+    String getConnectionString(File file);
 
     String getSelectLastInsertIdentity();
 

@@ -14,7 +14,6 @@ import android.view.TouchDelegate;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
-import android.view.animation.Animation;
 import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -36,7 +35,6 @@ import static org.robolectric.bytecode.RobolectricInternals.getConstructor;
  * Supports listeners, focusability (but not focus order), resource loading,
  * visibility, onclick, tags, and tracks the size and shape of the view.
  */
-@SuppressWarnings({"UnusedDeclaration"})
 @Implements(value = View.class, callThroughByDefault = true)
 public class ShadowView {
   public static final String ANDROID_NS = "http://schemas.android.com/apk/res/android";
@@ -54,7 +52,6 @@ public class ShadowView {
   protected AttributeSet attributeSet;
   public Point scrollToCoordinates = new Point();
   private boolean didRequestLayout;
-  private Animation animation;
   private MotionEvent lastTouchEvent;
   private TouchDelegate touchDelegate;
   private boolean attachedToWindow;
@@ -294,27 +291,6 @@ public class ShadowView {
     return realView.performClick();
   }
 
-  public void applyFocus() {
-    if (noParentHasFocus(realView)) {
-      Boolean focusRequested = attributeSet.getAttributeBooleanValue(ANDROID_NS, "focus", false);
-      if (focusRequested || realView.isFocusableInTouchMode()) {
-        realView.requestFocus();
-      }
-    }
-  }
-
-  private boolean noParentHasFocus(View view) {
-    while (view != null) {
-      if (view.hasFocus()) return false;
-      ViewParent parent = view.getParent();
-      if (!(parent instanceof View)) {
-        parent = null;
-      }
-      view = (View) parent;
-    }
-    return true;
-  }
-
   /**
    * Non-android accessor.  Returns touch listener, if set.
    */
@@ -359,30 +335,6 @@ public class ShadowView {
         realView.invalidate();
       }
     }, delayMilliseconds);
-  }
-
-  @Implementation
-  public Animation getAnimation() {
-    return animation;
-  }
-
-  @Implementation
-  public void setAnimation(Animation anim) {
-    animation = anim;
-  }
-
-  @Implementation
-  public void startAnimation(Animation anim) {
-    setAnimation(anim);
-    animation.start();
-  }
-
-  @Implementation
-  public void clearAnimation() {
-    if (animation != null) {
-      animation.cancel();
-      animation = null;
-    }
   }
 
   @Implementation

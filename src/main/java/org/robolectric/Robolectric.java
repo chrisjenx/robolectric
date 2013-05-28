@@ -23,6 +23,7 @@ import android.appwidget.AppWidgetHostView;
 import android.appwidget.AppWidgetManager;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -83,7 +84,6 @@ import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
-import android.os.Message;
 import android.os.Parcel;
 import android.os.PowerManager;
 import android.os.ResultReceiver;
@@ -105,7 +105,6 @@ import android.view.Display;
 import android.view.GestureDetector;
 import android.view.InputDevice;
 import android.view.KeyEvent;
-import android.view.LayoutInflater;
 import android.view.MenuInflater;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -162,6 +161,9 @@ import android.widget.VideoView;
 import android.widget.ViewAnimator;
 import android.widget.ViewFlipper;
 import android.widget.ZoomButtonsController;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.List;
 import org.apache.http.Header;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -215,9 +217,9 @@ import org.robolectric.shadows.ShadowColorMatrix;
 import org.robolectric.shadows.ShadowConfiguration;
 import org.robolectric.shadows.ShadowConnectivityManager;
 import org.robolectric.shadows.ShadowContentObserver;
+import org.robolectric.shadows.ShadowContentProviderOperation;
 import org.robolectric.shadows.ShadowContentProviderResult;
 import org.robolectric.shadows.ShadowContentResolver;
-import org.robolectric.shadows.ShadowContentValues;
 import org.robolectric.shadows.ShadowContext;
 import org.robolectric.shadows.ShadowContextWrapper;
 import org.robolectric.shadows.ShadowCookieManager;
@@ -254,7 +256,6 @@ import org.robolectric.shadows.ShadowKeyEvent;
 import org.robolectric.shadows.ShadowKeyguardManager;
 import org.robolectric.shadows.ShadowLayerDrawable;
 import org.robolectric.shadows.ShadowLayoutAnimationController;
-import org.robolectric.shadows.ShadowLayoutInflater;
 import org.robolectric.shadows.ShadowLinearGradient;
 import org.robolectric.shadows.ShadowLinearLayout;
 import org.robolectric.shadows.ShadowListActivity;
@@ -270,7 +271,6 @@ import org.robolectric.shadows.ShadowMediaRecorder;
 import org.robolectric.shadows.ShadowMediaStore;
 import org.robolectric.shadows.ShadowMenuInflater;
 import org.robolectric.shadows.ShadowMergeCursor;
-import org.robolectric.shadows.ShadowMessage;
 import org.robolectric.shadows.ShadowMimeTypeMap;
 import org.robolectric.shadows.ShadowMotionEvent;
 import org.robolectric.shadows.ShadowNetworkInfo;
@@ -346,10 +346,6 @@ import org.robolectric.tester.org.apache.http.RequestMatcher;
 import org.robolectric.util.ActivityController;
 import org.robolectric.util.Scheduler;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.List;
-
 import static org.fest.reflect.core.Reflection.method;
 
 public class Robolectric {
@@ -357,6 +353,7 @@ public class Robolectric {
 
   public static Application application;
   public static RobolectricPackageManager packageManager;
+  public static Object activityThread;
 
   public static <T> T newInstanceOf(Class<T> clazz) {
     return RobolectricInternals.newInstanceOf(clazz);
@@ -392,7 +389,8 @@ public class Robolectric {
 
   public static <T> Invoker directlyOn(T shadowedObject, Class<T> clazz, String methodName, Class<?>... paramTypes) {
     String directMethodName = RobolectricInternals.directMethodName(clazz.getName(), methodName);
-    return method(directMethodName).withReturnType(Object.class).withParameterTypes(paramTypes).in(shadowedObject);
+    return method(directMethodName).withReturnType(Object.class).withParameterTypes(paramTypes).in(
+        shadowedObject);
   }
 
   public static <T> Invoker directlyOn(Class<T> clazz, String methodName, Class<?>... paramTypes) {
@@ -594,6 +592,10 @@ public class Robolectric {
     return (ShadowContentResolver) shadowOf_(instance);
   }
 
+  public static ShadowContentProviderOperation shadowOf(ContentProviderOperation instance) {
+    return (ShadowContentProviderOperation) shadowOf_(instance);
+  }
+
   public static ShadowContentProviderResult shadowOf(ContentProviderResult instance) {
     return (ShadowContentProviderResult) shadowOf_(instance);
   }
@@ -604,10 +606,6 @@ public class Robolectric {
 
   public static ShadowContext shadowOf(Context instance) {
     return (ShadowContext) shadowOf_(instance);
-  }
-
-  public static ShadowContentValues shadowOf(ContentValues other) {
-    return (ShadowContentValues) Robolectric.shadowOf_(other);
   }
 
   public static ShadowContextWrapper shadowOf(ContextWrapper instance) {
@@ -746,10 +744,6 @@ public class Robolectric {
     return (ShadowLayerDrawable) shadowOf_(instance);
   }
 
-  public static ShadowLayoutInflater shadowOf(LayoutInflater instance) {
-    return (ShadowLayoutInflater) shadowOf_(instance);
-  }
-
   public static ShadowLinearLayout shadowOf(LinearLayout instance) {
     return (ShadowLinearLayout) shadowOf_(instance);
   }
@@ -796,10 +790,6 @@ public class Robolectric {
 
   public static ShadowMergeCursor shadowOf(MergeCursor instance) {
     return (ShadowMergeCursor) shadowOf_(instance);
-  }
-
-  public static ShadowMessage shadowOf(Message instance) {
-    return (ShadowMessage) shadowOf_(instance);
   }
 
   public static ShadowMimeTypeMap shadowOf(MimeTypeMap instance) {
@@ -1394,6 +1384,8 @@ public class Robolectric {
 
   public static void reset() {
     Robolectric.application = null;
+    Robolectric.packageManager = null;
+    Robolectric.activityThread = null;
     ShadowAccountManager.reset();
     ShadowResources.reset();
     ShadowBitmapFactory.reset();
