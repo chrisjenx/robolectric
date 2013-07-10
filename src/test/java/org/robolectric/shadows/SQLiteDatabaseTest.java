@@ -3,7 +3,7 @@ package org.robolectric.shadows;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import org.fest.assertions.api.Assertions;
+import android.database.sqlite.SQLiteException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -16,8 +16,6 @@ import org.robolectric.util.SQLiteMap;
 import java.io.File;
 import java.util.List;
 
-import static com.googlecode.catchexception.CatchException.catchException;
-import static com.googlecode.catchexception.CatchException.caughtException;
 import static org.fest.assertions.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -690,14 +688,7 @@ public class SQLiteDatabaseTest extends DatabaseTestBase {
 
   @Test
   public void shouldCreateDefaultCursorFactoryWhenNullFactoryPassed() throws Exception {
-    //given
-    SQLiteDatabase.CursorFactory nullCursorFactory = null;
-
-    //when
-    catchException(database).rawQueryWithFactory(nullCursorFactory, ANY_VALID_SQL, null, null);
-
-    //then
-    Assertions.assertThat(caughtException()).as("Null cursor factory should be overridden by default implementation").isNull();
+    database.rawQueryWithFactory(null, ANY_VALID_SQL, null, null);
   }
 
   @Test
@@ -761,6 +752,21 @@ public class SQLiteDatabaseTest extends DatabaseTestBase {
     assertThat(c.getCount()).isEqualTo(1);
     assertThat(c.moveToNext()).isTrue();
     assertThat(c.getString(c.getColumnIndex("data"))).isEqualTo("d2");
+  }
+
+  @Test(expected = SQLiteException.class)
+  public void testQueryThrowsSQLiteException() throws Exception {
+    SQLiteDatabase db1 = SQLiteDatabase.openDatabase("db1", null, 0);
+    db1.query("FOO", null, null, null, null, null, null);
+  }
+
+  @Test
+  public void testCreateAndDropTable() throws Exception {
+    SQLiteDatabase db = SQLiteDatabase.openDatabase("db1", null, 0);
+    db.execSQL("CREATE TABLE foo(id INTEGER PRIMARY KEY AUTOINCREMENT, data TEXT);");
+    Cursor c = db.query("FOO", null, null, null, null, null, null);
+    assertThat(c).isNotNull();
+    db.execSQL("DROP TABLE IF EXISTS foo;");
   }
 
   private Cursor executeQuery(String query) {
